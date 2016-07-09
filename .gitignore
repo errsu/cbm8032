@@ -1,0 +1,7 @@
+Debug/
+Standard/
+.metadata/
+.build/
+.settings/
+*.xe
+*.xscope
