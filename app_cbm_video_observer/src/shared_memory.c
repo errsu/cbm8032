@@ -1,13 +1,13 @@
 #define SIZE 2048
 
-unsigned buffer[SIZE];
+unsigned buffer[SIZE] = {0, };
 
-void write_shared_memory(unsigned index, unsigned data)
+void shmem_write(unsigned index, unsigned data)
 {
   buffer[index % SIZE] = data;
 }
 
-unsigned read_shared_memory(unsigned index)
+unsigned shmem_read(unsigned index)
 {
   return buffer[index % SIZE];
 }

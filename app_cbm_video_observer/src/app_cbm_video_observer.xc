@@ -57,16 +57,16 @@ void observer()
           unsigned data;
           p_data :> data;
 
-          // address consists of a low-active 0x8000..0x8FFF range indicator
-          // and a 12 bit (0xFFF) address indicator of which only 11 bits
-          // are connected because range 0x8800...0x8FFF is not used
+          // - we are only interested in range 0x8000..0x87FF
+          // - address consists of a low-active 0x8000..0x8FFF range indicator at bit 15
+          //   and a 11 bit (0x7FF) address, assuming range 0x8800...0x8FFF is not used,
+          // - the range indicator is low-active
+          // - the unused bits may have arbitrary values and are to be ignored
+          // - data should be 8 bit only, we are assuming higher bits are all zero
 
           if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
           {
-            unsigned index = (address & 0x07FF); // < 2000
-            unsigned row = index / 80;           // < 25
-            unsigned col = index - (row * 80);   // < 80
-            write_shared_memory(row * 81 + col + 1, data); // respect line index
+            shmem_write(address & 0x07FF, data); // respect line index
           }
         }
         break;
@@ -98,20 +98,16 @@ static unsigned char base64[64] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                     'w', 'x', 'y', 'z', '0', '1', '2', '3',
                                     '4', '5', '6', '7', '8', '9', '+', '/' };
 
+#define BASE64_A(b0)     base64[(b0) >> 2]
+#define BASE64_B(b0, b1) base64[(((b0) & 0x03) << 4) | ((b1) >> 4)]
+#define BASE64_C(b1, b2) base64[((b1) & 0x0F) | ((b2) >> 6)]
+#define BASE64_D(b2)     base64[(b2) & 0x3F]
+
 void renderer(streaming chanend c_tx)
 {
-  unsigned index = 0;
-  for (unsigned row = 0; row < 25; row++)
-  {
-    write_shared_memory(index++, row);
-    for (unsigned col = 0; col < 80; col++)
-    {
-      write_shared_memory(index++, 0);
-    }
-  }
-
+  unsigned line = 0;
   unsigned chcount = 0; // 108 encoded bytes, \r, \n, idle
-  index = 0;
+  unsigned index = 0;
 
   unsigned time;
   timer t;
@@ -128,15 +124,26 @@ void renderer(streaming chanend c_tx)
         // single bytes only, otherwise the output operation would
         // block and we would miss bus writes
 
-        if (chcount < 108)
+        if (chcount < 4)
+        {
+          switch (chcount % 4)
+          {
+          case 0: c_tx <: BASE64_A(line); break;
+          case 1: c_tx <: BASE64_B(line, shmem_read(index)); break;
+          case 2: c_tx <: BASE64_C(shmem_read(index), shmem_read(index + 1)); break;
+          case 3: c_tx <: BASE64_D(shmem_read(index + 1)); index += 2; break;
+          }
+          chcount += 1;
+        }
+        else if (chcount < 108)
         {
           // base64: encoding 3 bytes in 4 characters (6 bits each)
           switch (chcount % 4)
           {
-          case 0: c_tx <: base64[read_shared_memory(index) >> 2]; break;
-          case 1: c_tx <: base64[((read_shared_memory(index) & 0x03) << 4) | (read_shared_memory(index + 1) >> 4)]; break;
-          case 2: c_tx <: base64[(read_shared_memory(index + 1) & 0x0F) | (read_shared_memory(index + 2) >> 6)]; break;
-          case 3: c_tx <: base64[read_shared_memory(index + 2) & 0x3F]; index += 3; break;
+          case 0: c_tx <: BASE64_A(shmem_read(index)); break;
+          case 1: c_tx <: BASE64_B(shmem_read(index), shmem_read(index + 1)); break;
+          case 2: c_tx <: BASE64_C(shmem_read(index + 1), shmem_read(index + 2)); break;
+          case 3: c_tx <: BASE64_D(shmem_read(index + 2)); index += 3; break;
           }
           chcount += 1;
         }
@@ -154,9 +161,11 @@ void renderer(streaming chanend c_tx)
         {
           // idle
           chcount = 0;
-          if (index == (81*25))
+          line += 1;
+          if (line == 25)
           {
             index = 0;
+            line = 0;
           }
         }
       }
