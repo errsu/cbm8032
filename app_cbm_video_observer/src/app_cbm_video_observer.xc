@@ -75,6 +75,7 @@ void observer(streaming chanend c_tx)
 
   unsigned time;
   timer t;
+  timer t1;
 
   t :> time;
   while (1)
@@ -84,19 +85,25 @@ void observer(streaming chanend c_tx)
       case p_trigger when pinsneq(trigger) :> trigger:
         if (trigger == 0)
         {
+          unsigned time1;
+          t1 :> time1;
+          t when timerafter(time1 + 70) :> void;
+
           unsigned address;
           p_address :> address;
-          address &= 0xFFFF;
-
           unsigned data;
           p_data :> data;
 
-          if (address >= 0x8000 && address < 0x87D0)
+          // address consists of a low-active 0x8000..0x8FFF range indicator
+          // and a 12 bit (0xFFF) address indicator of which only 11 bits
+          // are connected because range 0x8800...0x8FFF is not used
+
+          if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
           {
-            unsigned index = address - 0x8000;            // < 2000
-            unsigned row = index % 80;                    // < 25
-            unsigned col = index - (row * 80);            // < 80
-            buffer[row * 81 + col] = (unsigned char)data; // respect line index
+            unsigned index = (address & 0x07FF); // < 2000
+            unsigned row = index / 80;           // < 25
+            unsigned col = index - (row * 80);   // < 80
+            buffer[row * 81 + col + 1] = (unsigned char)data; // respect line index
           }
         }
         break;
@@ -107,16 +114,26 @@ void observer(streaming chanend c_tx)
         // but we won't rely on this, therefore we always send
         // single bytes only, otherwise the output operation would
         // block and we would miss bus writes
+        if (chcount < 4)
+        {
+          c_tx <: (unsigned char)buffer[chcount + 1];
+          chcount += 1;
+        }
+        else
+        {
+          chcount = 0; // idle
+        }
 
+#if 0
         if (chcount < 108)
         {
           // base64: encoding 3 bytes in 4 characters (6 bits each)
           switch (chcount % 4)
           {
-          case 0: c_tx <: base64[                             (buffer[index    ] >> 2)]; break;
-          case 1: c_tx <: base64[(buffer[index    ] & 0x03) | (buffer[index + 1] >> 4)]; break;
+          case 0: c_tx <: base64[(buffer[index] >> 2)]; break;
+          case 1: c_tx <: base64[((buffer[index] & 0x03) << 4) | (buffer[index + 1] >> 4)]; break;
           case 2: c_tx <: base64[(buffer[index + 1] & 0x0F) | (buffer[index + 2] >> 6)]; break;
-          case 3: c_tx <: base64[(buffer[index + 2] & 0x3F)]; index += 3;                break;
+          case 3: c_tx <: base64[(buffer[index + 2] & 0x3F)]; index += 3; break;
           }
           chcount += 1;
         }
@@ -139,6 +156,7 @@ void observer(streaming chanend c_tx)
             index = 0;
           }
         }
+#endif
       }
       break;
     }
