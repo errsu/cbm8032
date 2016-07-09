@@ -9,6 +9,8 @@
 #include <platform.h>
 
 #include <stdlib.h>
+#include <stdio.h>
+#include "shared_memory.h"
 
 void uart_tx_streaming(out port p, streaming chanend c, int clocks) {
     int t;
@@ -33,6 +35,47 @@ on tile[0]: in  port p_trigger = XS1_PORT_1H;  // J7 pin 2
 on tile[0]: in  port p_address = XS1_PORT_32A; // lower 16 pins only, at J3 and J8
 on tile[0]: in  port p_data    = XS1_PORT_8B;  // J7 5/7/9/13/12/14/6/8
 
+void observer()
+{
+  unsigned trigger = 0;
+  timer t;
+
+  while (1)
+  {
+    select
+    {
+      case p_trigger when pinsneq(trigger) :> trigger:
+      {
+        if (trigger == 0)
+        {
+          unsigned time;
+          t :> time;
+          t when timerafter(time + 70) :> void;
+
+          unsigned address;
+          p_address :> address;
+          unsigned data;
+          p_data :> data;
+
+          // address consists of a low-active 0x8000..0x8FFF range indicator
+          // and a 12 bit (0xFFF) address indicator of which only 11 bits
+          // are connected because range 0x8800...0x8FFF is not used
+
+          if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
+          {
+            unsigned index = (address & 0x07FF); // < 2000
+            unsigned row = index / 80;           // < 25
+            unsigned col = index - (row * 80);   // < 80
+            write_shared_memory(row * 81 + col + 1, data); // respect line index
+          }
+        }
+        break;
+      }
+    }
+  }
+}
+
+
 // 1 tick == 10 ns
 // f = 100,000,000 / TICKS_PER_BIT
 // 7   = 14.28 MBit/sec (minimum working for 125MHz XMOS thread)
@@ -55,85 +98,45 @@ static unsigned char base64[64] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                     'w', 'x', 'y', 'z', '0', '1', '2', '3',
                                     '4', '5', '6', '7', '8', '9', '+', '/' };
 
-void observer(streaming chanend c_tx)
+void renderer(streaming chanend c_tx)
 {
-  unsigned char buffer[2048]; // 25 lines * (1 line number + 80 data bytes)
-
   unsigned index = 0;
   for (unsigned row = 0; row < 25; row++)
   {
-    buffer[index++] = row;
+    write_shared_memory(index++, row);
     for (unsigned col = 0; col < 80; col++)
     {
-      buffer[index++] = 0;
+      write_shared_memory(index++, 0);
     }
   }
 
-  unsigned trigger = 0;
   unsigned chcount = 0; // 108 encoded bytes, \r, \n, idle
   index = 0;
 
   unsigned time;
   timer t;
-  timer t1;
 
   t :> time;
   while (1)
   {
     select
     {
-      case p_trigger when pinsneq(trigger) :> trigger:
-        if (trigger == 0)
-        {
-          unsigned time1;
-          t1 :> time1;
-          t when timerafter(time1 + 70) :> void;
-
-          unsigned address;
-          p_address :> address;
-          unsigned data;
-          p_data :> data;
-
-          // address consists of a low-active 0x8000..0x8FFF range indicator
-          // and a 12 bit (0xFFF) address indicator of which only 11 bits
-          // are connected because range 0x8800...0x8FFF is not used
-
-          if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
-          {
-            unsigned index = (address & 0x07FF); // < 2000
-            unsigned row = index / 80;           // < 25
-            unsigned col = index - (row * 80);   // < 80
-            buffer[row * 81 + col + 1] = (unsigned char)data; // respect line index
-          }
-        }
-        break;
-
       case t when timerafter (time + (TICKS_PER_BIT * 12)) :> time:
       {
         // theoretically the c_tx channel has room for 8 bytes,
         // but we won't rely on this, therefore we always send
         // single bytes only, otherwise the output operation would
         // block and we would miss bus writes
-        if (chcount < 4)
-        {
-          c_tx <: (unsigned char)buffer[chcount + 1];
-          chcount += 1;
-        }
-        else
-        {
-          chcount = 0; // idle
-        }
 
-#if 0
         if (chcount < 108)
         {
           // base64: encoding 3 bytes in 4 characters (6 bits each)
           switch (chcount % 4)
           {
-          case 0: c_tx <: base64[(buffer[index] >> 2)]; break;
-          case 1: c_tx <: base64[((buffer[index] & 0x03) << 4) | (buffer[index + 1] >> 4)]; break;
-          case 2: c_tx <: base64[(buffer[index + 1] & 0x0F) | (buffer[index + 2] >> 6)]; break;
-          case 3: c_tx <: base64[(buffer[index + 2] & 0x3F)]; index += 3; break;
+          case 0: c_tx <: base64[read_shared_memory(index) >> 2]; break;
+          case 1: c_tx <: base64[((read_shared_memory(index) & 0x03) << 4) | (read_shared_memory(index + 1) >> 4)]; break;
+          case 2: c_tx <: base64[(read_shared_memory(index + 1) & 0x0F) | (read_shared_memory(index + 2) >> 6)]; break;
+          case 3: c_tx <: base64[read_shared_memory(index + 2) & 0x3F]; index += 3; break;
           }
           chcount += 1;
         }
@@ -156,7 +159,6 @@ void observer(streaming chanend c_tx)
             index = 0;
           }
         }
-#endif
       }
       break;
     }
@@ -169,7 +171,8 @@ int main()
   par
   {
     on tile[0]: uart_tx_streaming(p_uart_tx, c_tx, TICKS_PER_BIT);
-    on tile[0]: observer(c_tx);
+    on tile[0]: observer();
+    on tile[0]: renderer(c_tx);
   }
   return 0;
 }
