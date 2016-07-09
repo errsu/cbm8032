@@ -42,34 +42,28 @@ void observer()
 
   while (1)
   {
-    select
+    p_trigger when pinsneq(trigger) :> trigger;
+    if (trigger == 0)
     {
-      case p_trigger when pinsneq(trigger) :> trigger:
+      unsigned time;
+      t :> time;
+      t when timerafter(time + 70) :> void;
+
+      unsigned address;
+      p_address :> address;
+      unsigned data;
+      p_data :> data;
+
+      // - we are only interested in range 0x8000..0x87FF
+      // - address consists of a low-active 0x8000..0x8FFF range indicator at bit 15
+      //   and a 11 bit (0x7FF) address, assuming range 0x8800...0x8FFF is not used,
+      // - the range indicator is low-active
+      // - the unused bits may have arbitrary values and are to be ignored
+      // - data should be 8 bit only, we are assuming higher bits are all zero
+
+      if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
       {
-        if (trigger == 0)
-        {
-          unsigned time;
-          t :> time;
-          t when timerafter(time + 70) :> void;
-
-          unsigned address;
-          p_address :> address;
-          unsigned data;
-          p_data :> data;
-
-          // - we are only interested in range 0x8000..0x87FF
-          // - address consists of a low-active 0x8000..0x8FFF range indicator at bit 15
-          //   and a 11 bit (0x7FF) address, assuming range 0x8800...0x8FFF is not used,
-          // - the range indicator is low-active
-          // - the unused bits may have arbitrary values and are to be ignored
-          // - data should be 8 bit only, we are assuming higher bits are all zero
-
-          if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
-          {
-            shmem_write(address & 0x07FF, data); // respect line index
-          }
-        }
-        break;
+        shmem_write(address & 0x07FF, data); // respect line index
       }
     }
   }
@@ -115,61 +109,56 @@ void renderer(streaming chanend c_tx)
   t :> time;
   while (1)
   {
-    select
-    {
-      case t when timerafter (time + (TICKS_PER_BIT * 12)) :> time:
-      {
-        // theoretically the c_tx channel has room for 8 bytes,
-        // but we won't rely on this, therefore we always send
-        // single bytes only, otherwise the output operation would
-        // block and we would miss bus writes
+    t when timerafter (time + (TICKS_PER_BIT * 12)) :> time;
 
-        if (chcount < 4)
-        {
-          switch (chcount % 4)
-          {
-          case 0: c_tx <: BASE64_A(line); break;
-          case 1: c_tx <: BASE64_B(line, shmem_read(index)); break;
-          case 2: c_tx <: BASE64_C(shmem_read(index), shmem_read(index + 1)); break;
-          case 3: c_tx <: BASE64_D(shmem_read(index + 1)); index += 2; break;
-          }
-          chcount += 1;
-        }
-        else if (chcount < 108)
-        {
-          // base64: encoding 3 bytes in 4 characters (6 bits each)
-          switch (chcount % 4)
-          {
-          case 0: c_tx <: BASE64_A(shmem_read(index)); break;
-          case 1: c_tx <: BASE64_B(shmem_read(index), shmem_read(index + 1)); break;
-          case 2: c_tx <: BASE64_C(shmem_read(index + 1), shmem_read(index + 2)); break;
-          case 3: c_tx <: BASE64_D(shmem_read(index + 2)); index += 3; break;
-          }
-          chcount += 1;
-        }
-        else if (chcount == 108)
-        {
-          c_tx <: (unsigned char)'\r';
-          chcount += 1;
-        }
-        else if (chcount == 109)
-        {
-          c_tx <: (unsigned char)'\n';
-          chcount += 1;
-        }
-        else
-        {
-          // idle
-          chcount = 0;
-          line += 1;
-          if (line == 25)
-          {
-            index = 0;
-            line = 0;
-          }
-        }
+    // theoretically the c_tx channel has room for 8 bytes,
+    // but we won't rely on this, therefore we always send
+    // single bytes only, otherwise the output operation would
+    // block and we would miss bus writes
+
+    if (chcount < 4)
+    {
+      switch (chcount % 4)
+      {
+      case 0: c_tx <: BASE64_A(line); break;
+      case 1: c_tx <: BASE64_B(line, shmem_read(index)); break;
+      case 2: c_tx <: BASE64_C(shmem_read(index), shmem_read(index + 1)); break;
+      case 3: c_tx <: BASE64_D(shmem_read(index + 1)); index += 2; break;
       }
-      break;
+      chcount += 1;
+    }
+    else if (chcount < 108)
+    {
+      // base64: encoding 3 bytes in 4 characters (6 bits each)
+      switch (chcount % 4)
+      {
+      case 0: c_tx <: BASE64_A(shmem_read(index)); break;
+      case 1: c_tx <: BASE64_B(shmem_read(index), shmem_read(index + 1)); break;
+      case 2: c_tx <: BASE64_C(shmem_read(index + 1), shmem_read(index + 2)); break;
+      case 3: c_tx <: BASE64_D(shmem_read(index + 2)); index += 3; break;
+      }
+      chcount += 1;
+    }
+    else if (chcount == 108)
+    {
+      c_tx <: (unsigned char)'\r';
+      chcount += 1;
+    }
+    else if (chcount == 109)
+    {
+      c_tx <: (unsigned char)'\n';
+      chcount += 1;
+    }
+    else
+    {
+      // idle
+      chcount = 0;
+      line += 1;
+      if (line == 25)
+      {
+        index = 0;
+        line = 0;
+      }
     }
   }
 }
