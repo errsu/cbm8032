@@ -31,6 +31,7 @@ void uart_tx_streaming(out port p, streaming chanend c, int clocks) {
 }
 
 on tile[0]: out port p_uart_tx = XS1_PORT_1F;  // J7 pin 1
+on tile[0]: in  port p_graphic = XS1_PORT_1I;  // J7 pin 20
 on tile[0]: in  port p_trigger = XS1_PORT_1H;  // J7 pin 2
 on tile[0]: in  port p_address = XS1_PORT_32A; // lower 16 pins only, at J3 and J8
 on tile[0]: in  port p_data    = XS1_PORT_8B;  // J7 5/7/9/13/12/14/6/8
@@ -38,33 +39,43 @@ on tile[0]: in  port p_data    = XS1_PORT_8B;  // J7 5/7/9/13/12/14/6/8
 void observer()
 {
   unsigned trigger = 0;
+  unsigned graphic = 0;
   timer t;
 
   while (1)
   {
-    p_trigger when pinsneq(trigger) :> trigger;
-    if (trigger == 0)
+#pragma ordered
+    select
     {
-      unsigned time;
-      t :> time;
-      t when timerafter(time + 70) :> void;
+      case p_trigger when pinsneq(trigger) :> trigger:
+        if (trigger == 0)
+        {
+          unsigned time;
+          t :> time;
+          t when timerafter(time + 70) :> void;
 
-      unsigned address;
-      p_address :> address;
-      unsigned data;
-      p_data :> data;
+          unsigned address;
+          p_address :> address;
+          unsigned data;
+          p_data :> data;
 
-      // - we are only interested in range 0x8000..0x87FF
-      // - address consists of a low-active 0x8000..0x8FFF range indicator at bit 15
-      //   and a 11 bit (0x7FF) address, assuming range 0x8800...0x8FFF is not used,
-      // - the range indicator is low-active
-      // - the unused bits may have arbitrary values and are to be ignored
-      // - data should be 8 bit only, we are assuming higher bits are all zero
+          // - we are only interested in range 0x8000..0x87FF
+          // - address consists of a low-active 0x8000..0x8FFF range indicator at bit 15
+          //   and a 11 bit (0x7FF) address, assuming range 0x8800...0x8FFF is not used,
+          // - the range indicator is low-active
+          // - the unused bits may have arbitrary values and are to be ignored
+          // - data should be 8 bit only, we are assuming higher bits are all zero
 
-      if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
-      {
-        shmem_write(address & 0x07FF, data); // respect line index
-      }
+          if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
+          {
+            shmem_write(address & 0x07FF, data);
+          }
+        }
+        break;
+
+      case p_graphic when pinsneq(graphic) :> graphic:
+        shmem_write(25*80, graphic); // line 26 contains all kinds of flags
+        break;
     }
   }
 }
@@ -83,7 +94,7 @@ void observer_mockup()
     time += 100000000; // 1 sec
     t when timerafter (time) :> void;
 
-    for (unsigned address = 0; address < 0x800; address++)
+    for (unsigned address = 0; address < 25*80; address++)
     {
       unsigned time1;
       timer t1;
@@ -121,14 +132,15 @@ void observer_mockup2()
 // f = 100,000,000 / TICKS_PER_BIT
 // 7   = 14.28 MBit/sec (minimum working for 125MHz XMOS thread)
 // 50  = 2Mbit/sec
+// 60 = 1666666 bit/sec
 // 100 = 1MBit/sec
 // 868 = 115200 bit/sec
 // 10419 = 9600 bit/sec
 
-// 1665000 bit/sec needed for 50Hz * 25 rows * 111 characters per row * 12 bits per character
-// 60 = 1666666 bit/sec = 50,05 Hz
+// 1731600 bit/sec needed for 50Hz * 26 rows * 111 characters per row * 12 bits per character
+// using 2MBit/sec so that we have some room for later frame sync and double buffering
 
-#define TICKS_PER_BIT 60
+#define TICKS_PER_BIT 50
 
 static unsigned char base64[64] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -201,7 +213,7 @@ void renderer(streaming chanend c_tx)
       // idle
       chcount = 0;
       line += 1;
-      if (line == 25)
+      if (line == 26)
       {
         index = 0;
         line = 0;
