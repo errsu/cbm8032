@@ -141,7 +141,7 @@ static unsigned char base64[64] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 
 #define BASE64_A(b0)     base64[(b0) >> 2]
 #define BASE64_B(b0, b1) base64[(((b0) & 0x03) << 4) | ((b1) >> 4)]
-#define BASE64_C(b1, b2) base64[((b1) & 0x0F) | ((b2) >> 6)]
+#define BASE64_C(b1, b2) base64[(((b1) & 0x0F) << 2) | ((b2) >> 6)]
 #define BASE64_D(b2)     base64[(b2) & 0x3F]
 
 void renderer(streaming chanend c_tx)
