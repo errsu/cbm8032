@@ -69,6 +69,53 @@ void observer()
   }
 }
 
+void observer_mockup()
+{
+  unsigned char data = 'A';
+  unsigned char graphic = 0;
+
+  unsigned time;
+  timer t;
+  t :> time;
+
+  while (1)
+  {
+    time += 100000000; // 1 sec
+    t when timerafter (time) :> void;
+
+    for (unsigned address = 0; address < 0x800; address++)
+    {
+      unsigned time1;
+      timer t1;
+      t1 :> time1;
+      t when timerafter (time + 100) :> void; // 1 us
+
+      shmem_write(address, data);
+    }
+    shmem_write(25*80, graphic);
+
+    data += 1;
+    if (data > 'Z')
+    {
+      data = 'A';
+    }
+    graphic = graphic? 0 : 1;
+  }
+}
+
+void observer_mockup2()
+{
+                      //  12345678901234567890123456789012345678901234567890123456789012345678901234567890
+  unsigned char tl[81] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-:;*!$%&/(){}[]?=";
+
+  for (unsigned line = 0; line < 25; line++)
+  {
+    for (unsigned i = 0; i < 80; i++)
+    {
+      shmem_write((line * 80) + i, tl[i]);
+    }
+  }
+}
 
 // 1 tick == 10 ns
 // f = 100,000,000 / TICKS_PER_BIT
@@ -169,7 +216,7 @@ int main()
   par
   {
     on tile[0]: uart_tx_streaming(p_uart_tx, c_tx, TICKS_PER_BIT);
-    on tile[0]: observer();
+    on tile[0]: observer_mockup();
     on tile[0]: renderer(c_tx);
   }
   return 0;
