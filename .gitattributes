@@ -1,6 +1,7 @@
-*.c       eol=crlf
+*.c       eol=lf
 *.cfg     eol=lf
 *.chm     binary
+*.cpp     eol=lf
 *.fzz     binary
 *.h       eol=crlf
 *.html    eol=crlf
