@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "shared_memory.h"
+#include "nbsp.h"
 
 void uart_tx_streaming(out port p, streaming chanend c, int clocks) {
     int t;
@@ -35,12 +36,17 @@ on tile[0]: in  port p_graphic = XS1_PORT_1I;  // J7 pin 20
 on tile[0]: in  port p_trigger = XS1_PORT_1H;  // J7 pin 2
 on tile[0]: in  port p_address = XS1_PORT_32A; // lower 16 pins only, at J3 and J8
 on tile[0]: in  port p_data    = XS1_PORT_8B;  // J7 5/7/9/13/12/14/6/8
+on tile[0]: in  port p_frame   = XS1_PORT_1G;  // J7 pin 3
 
-void observer()
+void observer(chanend c_observer)
 {
   unsigned trigger = 0;
   unsigned graphic = 0;
+  unsigned frame = 0;
   timer t;
+
+  t_nbsp_state observer_state;
+  NBSP_INIT_WITH_BUFFER(c_observer, observer_state, 128);
 
   while (1)
   {
@@ -76,11 +82,18 @@ void observer()
       case p_graphic when pinsneq(graphic) :> graphic:
         shmem_write(25*80, graphic); // line 26 contains all kinds of flags
         break;
+
+      case p_frame when pinsneq(frame) :> frame:
+        if (frame == 0)
+        {
+          // send frame signal
+        }
+        break;
     }
   }
 }
 
-void observer_mockup()
+void observer_mockup(chanend c_observer)
 {
   unsigned char data = 'A';
   unsigned char graphic = 0;
@@ -114,7 +127,7 @@ void observer_mockup()
   }
 }
 
-void observer_mockup2()
+void observer_mockup2(chanend c_observer)
 {
                       //  12345678901234567890123456789012345678901234567890123456789012345678901234567890
   unsigned char tl[81] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-:;*!$%&/(){}[]?=";
@@ -156,7 +169,7 @@ static unsigned char base64[64] = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 #define BASE64_C(b1, b2) base64[(((b1) & 0x0F) << 2) | ((b2) >> 6)]
 #define BASE64_D(b2)     base64[(b2) & 0x3F]
 
-void renderer(streaming chanend c_tx)
+void renderer(chanend c_observer, streaming chanend c_tx)
 {
   unsigned line = 0;
   unsigned chcount = 0; // 108 encoded bytes, \r, \n, idle
@@ -183,6 +196,7 @@ void renderer(streaming chanend c_tx)
       case 1: c_tx <: BASE64_B(line, shmem_read(index)); break;
       case 2: c_tx <: BASE64_C(shmem_read(index), shmem_read(index + 1)); break;
       case 3: c_tx <: BASE64_D(shmem_read(index + 1)); index += 2; break;
+      default: break;
       }
       chcount += 1;
     }
@@ -195,6 +209,7 @@ void renderer(streaming chanend c_tx)
       case 1: c_tx <: BASE64_B(shmem_read(index), shmem_read(index + 1)); break;
       case 2: c_tx <: BASE64_C(shmem_read(index + 1), shmem_read(index + 2)); break;
       case 3: c_tx <: BASE64_D(shmem_read(index + 2)); index += 3; break;
+      default: break;
       }
       chcount += 1;
     }
@@ -224,12 +239,13 @@ void renderer(streaming chanend c_tx)
 
 int main()
 {
+  chan c_observer;
   streaming chan c_tx;
   par
   {
     on tile[0]: uart_tx_streaming(p_uart_tx, c_tx, TICKS_PER_BIT);
-    on tile[0]: observer_mockup();
-    on tile[0]: renderer(c_tx);
+    on tile[0]: observer_mockup(c_observer);
+    on tile[0]: renderer(c_observer, c_tx);
   }
   return 0;
 }

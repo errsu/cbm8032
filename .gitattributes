@@ -1,24 +1,222 @@
-*.c       eol=lf
-*.cfg     eol=lf
-*.chm     binary
-*.cpp     eol=lf
-*.fzz     binary
-*.h       eol=crlf
-*.html    eol=crlf
-*.ino     eol=lf
-*.jpg     binary
-*.pdf     binary
-*.py      eol=lf
-*.s       eol=lf
-*.txt     text
-*.vcproj  eol=crlf
-*.xc      eol=crlf
-*.xn      eol=lf
-*.zip     binary
-.cproject eol=crlf
-.gitattributes eol=lf
-.gitignore eol=lf
-.makefile eol=lf
-.project  eol=crlf
-.xproject eol=crlf
-Makefile  eol=lf
+# Important:
+#
+# If you insert a new entry for "text" or "eol=", or you change an exisiting
+# entry from binary to "text" or "eol=", make sure that any existing files
+# of that type are normalized. The easiest way to do this is to type
+# "rm .git/index && git reset".
+#
+# This is a catch-all fallback entry for anything that's not matched below.
+# We need this only so that it's possible to turn on core.autocrlf without
+# having to fear accidental corruption of binary files that look like text.
+*                     -text
+.gitattributes        text
+.gitignore            text
+.cproject             text eol=crlf
+.project              text eol=crlf
+.xproject             text eol=lf
+*.a                   binary
+*.abm                 binary
+*.adg                 binary
+*.adv                 binary
+*.agr                 binary
+*.ai                  binary
+*.aif                 binary
+*.alc                 binary
+*.alias               binary
+*.alp                 binary
+*.als                 binary
+*.amp                 binary
+*.ams                 text
+*.amxd                binary
+*.ani                 binary
+*.applescript         text
+*.aps                 binary
+*.ascript             text
+*.asc                 text eol=lf
+*.asd                 binary
+*.ask                 binary
+*.asm                 text
+*.asy                 text eol=crlf
+*.aupreset            text
+*.avd                 text
+*.bak                 binary
+*.bat                 text eol=crlf
+*.bin                 binary
+*.bmp                 binary
+*.BOM                 binary
+*.buildinfo           text eol=lf
+*.bz2                 binary
+*.c                   text
+*.cab                 binary
+*.cat                 binary
+*.cmake               text
+*.cmd                 text eol=crlf
+*.config              text
+*.conf                text
+*.cp                  text
+*.cpp                 text diff=cpp
+*.csproj              text eol=crlf
+*.css                 text
+*.dat                 text eol=lf
+*.db                  binary
+*.deb                 binary
+*.def                 text
+*.diff                text
+*.dll                 binary
+*.doc                 binary
+*.docbook             text
+*.docx                binary
+*.dontLint            text
+*.DSN                 binary
+*.dsp                 text eol=crlf
+*.dsw                 text eol=crlf
+*.dwg                 binary
+*.dylib               binary
+*.egg                 binary
+*.epub                binary
+*.EXE                 binary
+*.exe                 binary
+*.exp                 binary
+*.feature             text diff=feature
+*.filters             text
+*.fla                 binary
+*.flac                binary
+*.fnt                 binary
+*.gdb                 text
+*.gif                 binary
+*.gp                  text eol=lf
+*.gyp                 text
+*.graffle             binary
+*.gz                  binary
+*.h                   text diff=cpp eol=lf
+*.hpp                 text diff=cpp
+*.html                text eol=lf
+*.icns                binary
+*.ico                 binary
+*.INC                 binary
+*.inc                 text eol=lf
+*.ini                 text
+*.inf                 text eol=crlf
+*.java                text
+*.JPG                 binary
+*.jpg                 binary
+*.js                  text
+*.json                text
+*.lib                 binary
+*.lng                 text
+*.log                 text
+*.lua                 text
+*.m                   text
+*.m4a                 binary
+*.manifest            text eol=crlf
+*.maxpat              text
+*.mcp                 binary
+*.metainfo            text eol=crlf
+*.mid                 binary
+*.mm                  text
+*.mmap                binary
+*.MOD                 binary
+*.mp3                 binary
+*.msi                 binary
+*.msu                 binary
+*.mxe64               binary
+*.mxf                 binary
+*.mpp                 binary
+*.nib                 binary
+*.nki                 binary
+*.o                   binary
+*.odt                 binary
+*.ogg                 binary
+*.OPJ                 binary
+*.opj                 binary
+*.otf                 binary
+*.patch               text
+*.pbxproj             text
+*.pbxuser             text
+*.pch++               text
+*.pdb                 binary
+*.pdf                 binary
+*.pdb                 binary
+*.pem                 text
+*.pl                  text
+*.plist               text
+*.plt                 text eol=lf
+*.PNG                 binary
+*.png                 binary
+*.pptx                binary
+*.props               text
+*.prj                 text
+*.psd                 binary
+*.py                  text eol=lf
+*.pyd                 binary
+*.pym                 text
+*.qml                 text eol=lf
+*.r                   text
+*.rb                  text
+*.rc                  text eol=crlf
+*.rsrc                binary
+*.rst                 text eol=lf
+*.rtf                 binary
+*.rules               text
+*.S                   text eol=lf
+*.sat                 binary
+*.scpt                binary
+*.sh                  text eol=lf
+*.sln                 text eol=crlf
+*.so                  binary
+*_sources             text
+*.stg                 binary
+*.stl                 binary
+*.stp                 binary
+*.strings             binary
+*.sub                 text eol=crlf
+*.svg                 binary
+*.sys                 binary
+*.syx                 binary
+*.T3001               binary
+*.targets             text
+*.tdg                 binary
+*.tgz                 binary
+*.TIF                 binary
+*.tif                 binary
+*.tlb                 binary
+*.ttf                 binary
+*.txt                 text
+*.upgrade             binary
+*.URL                 text
+*.url                 text
+*.vb                  text eol=crlf
+*.vbs                 text eol=crlf
+*.vcproj              text eol=crlf
+*.vcproj.user         text eol=crlf
+*.vcxproj             text eol=crlf
+*.vcxproj.user        text eol=crlf
+*.vsd                 binary
+*.vsdx                binary
+*.vsprops             text eol=crlf
+*.vxd                 binary
+*.wav                 binary
+*.wire                text
+*.wma                 binary
+*.wse                 text eol=crlf
+*.xcconfig            text
+*.xc                  text diff=cpp eol=lf
+*.xcworkspacedata     text
+*.xe                  binary
+*.xls                 binary
+*.xlsx                binary
+*.xml                 text eol=lf
+*.xn                  text
+*.yml                 text
+*.zip                 binary
+Makefile              text eol=lf
+.makefile             text eol=lf
+bulktest              binary
+module_build_info     text eol=lf
+module_description    text eol=lf
+VERSION               text eol=lf
+EmptyFolder           text
+org.eclipse.*.prefs   text
+
+# some config files are binary
+*.cfg                -text
