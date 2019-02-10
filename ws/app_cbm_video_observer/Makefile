@@ -14,7 +14,8 @@ INCLUDE_DIRS = src/*
 # The USED_MODULES variable lists other module used by the application.
 USED_MODULES = module_nbsp
 
-BUILD_FLAGS = -g -Wall -O3 -report -Wno-unused-parameter
+BUILD_FLAGS = -g -Wall -O3 -report \
+              -Wno-unused-parameter -Wno-unused-variable -Wno-switch-default
 
 # The flags passed to xcc when building the application
 # You can also set the following to override flags for a particular language:
