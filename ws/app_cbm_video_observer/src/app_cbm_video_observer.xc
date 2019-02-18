@@ -61,12 +61,15 @@
 // init_uart_clock=32000000 (16 * baud rate)
 // init_uart_baud=2000000
 
+on tile[0]: const clock refClk = XS1_CLKBLK_REF;
 #define TICKS_PER_BIT 50
 
 void uart_tx(out port p, chanend c_tx) {
 
   t_nbsp_state tx_state;
   NBSP_INIT_NO_BUFFER(c_tx, tx_state);
+
+  configure_out_port_no_ready(p, refClk, 1);
 
   int t;
   unsigned char b;
@@ -83,7 +86,7 @@ void uart_tx(out port p, chanend c_tx) {
         t += TICKS_PER_BIT;
       }
       p @ t <: 1; //send stop bit
-      t += TICKS_PER_BIT;
+      t += TICKS_PER_BIT * 8;
       p @ t <: 1; //wait until end of stop bit
     }
   }
@@ -151,6 +154,10 @@ void observer(chanend c_observer)
           nbsp_send(observer_state, CMD_FRAME);
         }
         break;
+
+      case NBSP_RECEIVE_MSG(observer_state):
+        nbsp_handle_msg(observer_state); // pushing the buffer through
+        break;
     }
   }
 }
@@ -167,29 +174,44 @@ void observer_mockup(chanend c_observer)
   timer t;
   t :> time;
 
+  time += 100; // 1 usec
+  t when timerafter (time) :> void;
+
+  unsigned address = 0;
+
   while (1)
   {
-    time += 100000000; // 1 sec
-    t when timerafter (time) :> void;
-
-    for (unsigned address = 0; address < 25*80; address++)
+    // TODO: check for "nbsp buffer full"
+#pragma ordered
+    select
     {
-      unsigned time1;
-      timer t1;
-      t1 :> time1;
-      t when timerafter (time + 100) :> void; // 1 us
+      case t when timerafter(time) :> void:
+        nbsp_send(observer_state, CMD_WRITE | ((address & 0x07FF) << 8) | data);
+        address += 1;
 
-      nbsp_send(observer_state, CMD_WRITE | ((address & 0x07FF) << 8) | data);
-    }
-    nbsp_send(observer_state, CMD_GRAPHIC | graphic);
-    nbsp_send(observer_state, CMD_FRAME);
+        time += 100; // 1 usec
 
-    data += 1;
-    if (data > 'Z')
-    {
-      data = 'A';
+        if (address == 25 * 80)
+        {
+          nbsp_send(observer_state, CMD_GRAPHIC | graphic);
+          nbsp_send(observer_state, CMD_FRAME);
+
+          data += 1;
+          if (data > 'Z')
+          {
+            data = 'A';
+          }
+          graphic = graphic? 0 : 1;
+
+          address = 0;
+          time += 1800000; // 18 ms
+        }
+        break;
+
+      case NBSP_RECEIVE_MSG(observer_state):
+        nbsp_handle_msg(observer_state); // pushing the buffer through
+        break;
     }
-    graphic = graphic? 0 : 1;
   }
 }
 
@@ -321,14 +343,67 @@ void renderer(chanend c_observer, chanend c_tx)
   }
 }
 
+
+// Test receiver ------------------------------------------------------------
+
+on tile[0]: in port p_uart_rx = XS1_PORT_1E;  // X0D13 J7 pin 4
+
+static void uart_rx(streaming chanend c_rx)
+{
+  configure_in_port_no_ready(p_uart_rx, refClk);
+  clearbuf(p_uart_rx);
+
+  int dt2 = (TICKS_PER_BIT * 3)>>1; //one and a half bit times
+  int dt = TICKS_PER_BIT;
+  int t;
+  unsigned int data = 0;
+  while (1) {
+    p_uart_rx when pinseq(0) :> int _ @ t; //wait until falling edge of start bit
+      t += dt2;
+#pragma loop unroll(8)
+      for(int i = 0; i < 8; i++) {
+        p_uart_rx @ t :> >> data; //sample value when port timer = t
+                    //inlcudes post right shift
+          t += dt;
+      }
+      data >>= 24;      //shift into MSB
+      c_rx <: (unsigned char) data; //send to client
+      p_uart_rx @ t :> int _;
+      data = 0;
+  }
+}
+
+static void test_receiver(streaming chanend c_rx)
+{
+  unsigned char byte;
+  unsigned count = 0;
+  while (1) {
+    select {
+      case c_rx :> byte:
+        printf("rx %02x ", (unsigned)byte);
+        count += 1;
+        if (count == 10)
+        {
+          printf("\n");
+          count = 0;
+        }
+        break;
+    }
+  }
+}
+
 int main()
 {
   chan c_observer, c_tx;
+  streaming chan c_rx;
+
   par
   {
     on tile[0]: uart_tx(p_uart_tx, c_tx);
     on tile[0]: observer_mockup(c_observer);
     on tile[0]: renderer(c_observer, c_tx);
+    on tile[0]: uart_rx(c_rx);
+    on tile[0]: test_receiver(c_rx);
   }
   return 0;
 }
