@@ -27,11 +27,11 @@
 // ----------------------------------------------------
 // Transferred frame structure
 // 52 lines of 41 characters
-// First character of each line is the line number (0..51)
+// Last character of each line is the line number (0..51)
 // First line (number zero) is completely zero, so the receiver should
-// sync to 41 zeroes, followed by line 1.
-// Following lines (numbers 1 to 50) contain 80x25 bytess of screen data in characters 1..40.
-// Last line (number 51) contains graphic state in character 1 and 39 zeroes.
+// sync to 41 zeroes, preceeded by a non-zero (a value of 51, actually).
+// Following lines (numbers 1 to 50) contain 80x25 bytess of screen data in characters 0..39.
+// Last line (number 51) contains graphic state in character 0 and 39 zeroes, followed by 51.
 //
 // The required bandwidth at 8N1 with 11 bit cycles per byte and 50 Hz
 // is 52*41*11*50 = 1172600 bit/s. With 10 bit/cycle it's 1066000 bit/s.
@@ -64,31 +64,23 @@
 on tile[0]: const clock refClk = XS1_CLKBLK_REF;
 #define TICKS_PER_BIT 50
 
-void uart_tx(out port p, chanend c_tx) {
-
-  t_nbsp_state tx_state;
-  NBSP_INIT_NO_BUFFER(c_tx, tx_state);
-
+void uart_tx(out port p, chanend c_tx)
+{
   configure_out_port_no_ready(p, refClk, 1);
 
   int t;
-  unsigned char b;
   while (1) {
-    NBSP_RECEIVE_MSG(tx_state);
-    if (nbsp_handle_msg(tx_state))
-    {
-      b = (unsigned char)nbsp_received_data(tx_state);
-      p <: 0 @ t; //send start bit and timestamp (grab port timer value)
+    unsigned char b = inuchar(c_tx);
+    p <: 0 @ t; //send start bit and timestamp (grab port timer value)
+    t += TICKS_PER_BIT;
+#pragma loop unroll(8)
+    for(int i = 0; i < 8; i++) {
+      p @ t <: >> b; //timed output with post right shift
       t += TICKS_PER_BIT;
-  #pragma loop unroll(8)
-      for(int i = 0; i < 8; i++) {
-        p @ t <: >> b; //timed output with post right shift
-        t += TICKS_PER_BIT;
-      }
-      p @ t <: 1; //send stop bit
-      t += TICKS_PER_BIT;
-      p @ t <: 1; //wait until end of stop bit
     }
+    p @ t <: 1; //send stop bit
+    t += TICKS_PER_BIT;
+    p @ t <: 1; //wait until end of stop bit
   }
 }
 
@@ -250,18 +242,14 @@ void renderer(chanend c_observer, chanend c_tx)
   t_nbsp_state observer_state;
   NBSP_INIT_NO_BUFFER(c_observer, observer_state);
 
-  t_nbsp_state tx_state;
-  NBSP_INIT_WITH_BUFFER(c_tx, tx_state, 128); // Q: hold whole frame?
+//  t_nbsp_state tx_state;
+//  NBSP_INIT_WITH_BUFFER(c_tx, tx_state, 128); // Q: hold whole frame?
 
   unsigned char rx_buffer[40*51];
   unsigned char tx_buffer[40*52]; // first line with all zeroes
 
   safememset(rx_buffer, 0, sizeof(rx_buffer));
   safememset(tx_buffer, 0, sizeof(tx_buffer));
-
-  unsigned pending_tx = 0;
-  unsigned line;
-  int ch_index;
 
   while (1)
   {
@@ -288,59 +276,46 @@ void renderer(chanend c_observer, chanend c_tx)
           break;
 
         case CMD_FRAME:
-          if (pending_tx)
-          {
-            // could not send out frame until next arrived
-            // -> skipping frame signal
-            printf("frame signal skipped\n");
-            break;
-          }
           safememcpy(tx_buffer + 40, rx_buffer, sizeof(rx_buffer));
-          line = 0;    // 0 to 51
-          ch_index = -1; // -1 to 39
+          unsigned line = 0;    // 0 to 51
           while (line < 52)
           {
-            unsigned byte_to_send = (ch_index == -1) ? line : tx_buffer[line * 40 + ch_index];
-            if (nbsp_send(tx_state, byte_to_send))
+            // c_tx <: (unsigned char)line;
+            outuchar(c_tx, (unsigned char)line);
+            unsigned ch_index = 0; // -1 to 39
+            while (ch_index < 40)
             {
+              // c_tx <: tx_buffer[line * 40 + ch_index];
+              outuchar(c_tx, tx_buffer[line * 40 + ch_index]);
               ch_index += 1;
-              if (ch_index == 40)
-              {
-                line += 1;
-                ch_index = -1;
-              }
             }
-            else
-            {
-              pending_tx = 1;
-              break;
-            }
+            line += 1;
           }
           break;
         }
       }
       break;
 
-    case NBSP_RECEIVE_MSG(tx_state):
-      if (!nbsp_handle_msg(tx_state))
-      {
-        // ack received - buffer might have more room
-        if (pending_tx) {
-          unsigned byte_to_send = (ch_index == -1) ? line : tx_buffer[line * 40 + ch_index];
-          nbsp_send(tx_state, byte_to_send); // should succeed
-          ch_index += 1;
-          if (ch_index == 40)
-          {
-            line += 1;
-            ch_index = -1;
-            if (line == 52)
-            {
-              pending_tx = 0;
-            }
-          }
-        }
-      }
-      break;
+//    case NBSP_RECEIVE_MSG(tx_state):
+//      if (!nbsp_handle_msg(tx_state))
+//      {
+//        // ack received - buffer might have more room
+//        if (pending_tx) {
+//          unsigned byte_to_send = (ch_index == -1) ? line : tx_buffer[line * 40 + ch_index];
+//          nbsp_send(tx_state, byte_to_send); // should succeed
+//          ch_index += 1;
+//          if (ch_index == 40)
+//          {
+//            line += 1;
+//            ch_index = -1;
+//            if (line == 52)
+//            {
+//              pending_tx = 0;
+//            }
+//          }
+//        }
+//      }
+//      break;
     }
   }
 }
@@ -456,7 +431,7 @@ static void test_receiver(chanend c_collector)
 
 int main()
 {
-  chan c_observer, c_tx, c_collector;
+  chan c_observer, c_collector, c_tx;
   streaming chan c_rx;
 
   par
