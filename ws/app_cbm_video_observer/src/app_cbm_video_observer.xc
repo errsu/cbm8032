@@ -27,11 +27,11 @@
 // ----------------------------------------------------
 // Transferred frame structure
 // 52 lines of 41 characters
-// First character of each line is the line number (0..51)
+// Last character of each line is the line number (0..51)
 // First line (number zero) is completely zero, so the receiver should
-// sync to 41 zeroes, followed by line 1.
-// Following lines (numbers 1 to 50) contain 80x25 bytess of screen data in characters 1..40.
-// Last line (number 51) contains graphic state in character 1 and 39 zeroes.
+// sync to 41 zeroes, preceeded by a non-zero (a value of 51, actually).
+// Following lines (numbers 1 to 50) contain 80x25 bytess of screen data in characters 0..39.
+// Last line (number 51) contains graphic state in character 0 and 39 zeroes, followed by 51.
 //
 // The required bandwidth at 8N1 with 11 bit cycles per byte and 50 Hz
 // is 52*41*11*50 = 1172600 bit/s. With 10 bit/cycle it's 1066000 bit/s.
@@ -297,17 +297,17 @@ void renderer(chanend c_observer, chanend c_tx)
           }
           safememcpy(tx_buffer + 40, rx_buffer, sizeof(rx_buffer));
           line = 0;    // 0 to 51
-          ch_index = -1; // -1 to 39
+          ch_index = 0; // 0 to 40
           while (line < 52)
           {
-            unsigned byte_to_send = (ch_index == -1) ? line : tx_buffer[line * 40 + ch_index];
+            unsigned byte_to_send = (ch_index == 40) ? line : tx_buffer[line * 40 + ch_index];
             if (nbsp_send(tx_state, byte_to_send))
             {
               ch_index += 1;
-              if (ch_index == 40)
+              if (ch_index == 41)
               {
                 line += 1;
-                ch_index = -1;
+                ch_index = 0;
               }
             }
             else
@@ -326,13 +326,13 @@ void renderer(chanend c_observer, chanend c_tx)
       {
         // ack received - buffer might have more room
         if (pending_tx) {
-          unsigned byte_to_send = (ch_index == -1) ? line : tx_buffer[line * 40 + ch_index];
+          unsigned byte_to_send = (ch_index == 40) ? line : tx_buffer[line * 40 + ch_index];
           nbsp_send(tx_state, byte_to_send); // should succeed
           ch_index += 1;
-          if (ch_index == 40)
+          if (ch_index == 41)
           {
             line += 1;
-            ch_index = -1;
+            ch_index = 0;
             if (line == 52)
             {
               pending_tx = 0;
@@ -410,7 +410,7 @@ static void test_receiver(chanend c_collector)
 
   unsigned char b[4096];
   unsigned bufcount = 0;
-  unsigned char frame = 0x41;
+  unsigned char frame = 0;
 
   while (1) {
     NBSP_RECEIVE_MSG(receiver_state);
@@ -424,26 +424,30 @@ static void test_receiver(chanend c_collector)
         while (row < 52)
         {
           unsigned n = row * 41;
-          printf("%02x ", b[n++]);
           unsigned ok = 1;
-          unsigned char expected = (row == 0) ? 0 : (row == 51) ? 0 : frame;
-          for (unsigned i = 1; i < 41; i++)
+          unsigned char expected = (row == 0) ? 0 : (row == 51) ? 0 : (0x41 + frame);
+          unsigned char graphic = 0xFF;
+          for (unsigned i = 0; i < 40; i++)
           {
             unsigned char bb = b[n++];
-            if (bb != expected)
-            {
-              if (row == 51 && i == 1) {
-                printf("%02x ", bb);
-              }
-              else {
-                printf("at row %d i %d expected: %02x found: %02x\n", row, i, expected, bb);
-                ok = 0;
-              }
+            if (row == 51 && i == 0) {
+              graphic = bb;
             }
+            else if (bb != expected)
+            {
+              printf("at row %d i %d expected: %02x found: %02x\n", row, i, expected, bb);
+              ok = 0;
+            }
+          }
+          unsigned end_of_record = (unsigned)b[n++];
+          if (end_of_record != row)
+          {
+            printf("at row %d expected end: %02x found: %02x\n", row, row, end_of_record);
+            ok = 0;
           }
           if (ok)
           {
-            printf("%02x OK\n", frame);
+            printf("%d %02x %02x OK\n", frame, end_of_record, graphic);
           }
           row += 1;
         }
