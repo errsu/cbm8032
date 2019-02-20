@@ -26,12 +26,12 @@
 // New version with frame sync and binary data transfer
 // ----------------------------------------------------
 // Transferred frame structure
-// 52 lines of 41 characters
-// Last character of each line is the line number (0..51)
-// First line (number zero) is completely zero, so the receiver should
+// 52 buffers of 41 characters
+// Last character of each buffer is the buffer number (0..51)
+// First buffer (number zero) is completely zero, so the receiver should
 // sync to 41 zeroes, preceeded by a non-zero (a value of 51, actually).
-// Following lines (numbers 1 to 50) contain 80x25 bytess of screen data in characters 0..39.
-// Last line (number 51) contains graphic state in character 0 and 39 zeroes, followed by 51.
+// Following buffers (numbers 1 to 50) contain 80x25 bytes of screen data in characters 0..39.
+// Last buffer (number 51) contains graphic state in character 0 and 39 zeroes, followed by 51.
 //
 // The required bandwidth at 8N1 with 11 bit cycles per byte and 50 Hz
 // is 52*41*11*50 = 1172600 bit/s. With 10 bit/cycle it's 1066000 bit/s.
@@ -396,64 +396,132 @@ static void collector(streaming chanend c_rx, chanend c_collector)
   }
 }
 
+//----------------------------------------------------------------------------------------
+
+static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
+{
+  static unsigned char frame = 0;
+
+  unsigned char expected = (bufnum == 0) ? 0 : (bufnum == 51) ? 0 : (0x41 + frame);
+  unsigned char graphic = 0xFF;
+  unsigned ok = 1;
+  for (unsigned i = 0; i < 40; i++)
+  {
+    unsigned char bb = buffer[i];
+    if (bufnum == 51 && i == 0)
+    {
+      graphic = bb;
+    }
+    else if (bb != expected)
+    {
+      printf("at bufnum %d i %d expected: %02x found: %02x\n", bufnum, i, expected, bb);
+      ok = 0;
+    }
+  }
+  if (ok)
+  {
+    printf("%d %02x %02x OK\n", frame, bufnum, graphic);
+  }
+  if (bufnum == 51)
+  {
+    frame += 1;
+  }
+}
+
+#define STATE_OUT_OF_SYNC    0
+#define STATE_COUNTING_ZEROS 1
+#define STATE_IN_SYNC        2
+
+typedef struct {
+  unsigned state;
+  unsigned bufnum;
+  unsigned count;
+  unsigned char buffer[40];
+} t_receiver_context;
+
+static void init_receiver_context(t_receiver_context& context)
+{
+  context.state = STATE_OUT_OF_SYNC;
+}
+
+static void handle_sync_loss(t_receiver_context& context, unsigned char byte)
+{
+  printf("out of sync at bufnum %d count %d - received %02x\n", context.bufnum, context.count, byte);
+}
+
+static void handle_received_byte(unsigned char byte, t_receiver_context& context)
+{
+  switch(context.state)
+  {
+  case STATE_OUT_OF_SYNC:
+    if (byte != 0)
+    {
+      context.state = STATE_COUNTING_ZEROS;
+      context.count = 0;
+    }
+    break;
+  case STATE_COUNTING_ZEROS:
+    if (byte == 0)
+    {
+      context.count += 1;
+      if (context.count == 41)
+      {
+        context.state = STATE_IN_SYNC;
+        context.bufnum = 1;
+        context.count = 0;
+      }
+      else
+      {
+      }
+    }
+    else
+    {
+      context.count = 0;
+    }
+    break;
+
+  case STATE_IN_SYNC:
+    if (context.count < 40)
+    {
+      context.buffer[context.count] = byte;
+      context.count += 1;
+    }
+    else
+    {
+      if (byte == (unsigned char)context.bufnum)
+      {
+        handle_received_buffer(context.bufnum, context.buffer);
+        context.bufnum += 1;
+        context.count = 0;
+        if (context.bufnum == 52)
+        {
+          context.state = STATE_COUNTING_ZEROS;
+        }
+      }
+      else
+      {
+        handle_sync_loss(context, byte);
+        context.state = STATE_OUT_OF_SYNC;
+      }
+    }
+    break;
+  }
+}
+
 static void test_receiver(chanend c_collector)
 {
   t_nbsp_state receiver_state;
   NBSP_INIT_NO_BUFFER(c_collector, receiver_state);
 
-  NBSP_RECEIVE_MSG(receiver_state);
-  if (nbsp_handle_msg(receiver_state))
-  {
-    unsigned char byte = (unsigned char)nbsp_received_data(receiver_state);
-    printf("%02x\n", byte);
-  }
-
-  unsigned char b[4096];
-  unsigned bufcount = 0;
-  unsigned char frame = 0;
+  t_receiver_context context;
+  init_receiver_context(context);
 
   while (1) {
     NBSP_RECEIVE_MSG(receiver_state);
     if (nbsp_handle_msg(receiver_state))
     {
       unsigned char byte = (unsigned char)nbsp_received_data(receiver_state);
-      b[bufcount++] = byte;
-      if (bufcount == 41*52)
-      {
-        unsigned row = 0;
-        while (row < 52)
-        {
-          unsigned n = row * 41;
-          unsigned ok = 1;
-          unsigned char expected = (row == 0) ? 0 : (row == 51) ? 0 : (0x41 + frame);
-          unsigned char graphic = 0xFF;
-          for (unsigned i = 0; i < 40; i++)
-          {
-            unsigned char bb = b[n++];
-            if (row == 51 && i == 0) {
-              graphic = bb;
-            }
-            else if (bb != expected)
-            {
-              printf("at row %d i %d expected: %02x found: %02x\n", row, i, expected, bb);
-              ok = 0;
-            }
-          }
-          unsigned end_of_record = (unsigned)b[n++];
-          if (end_of_record != row)
-          {
-            printf("at row %d expected end: %02x found: %02x\n", row, row, end_of_record);
-            ok = 0;
-          }
-          if (ok)
-          {
-            printf("%d %02x %02x OK\n", frame, end_of_record, graphic);
-          }
-          row += 1;
-        }
-        bufcount = 0;
-        frame += 1;
-      }
+      handle_received_byte(byte, context);
     }
   }
 }
