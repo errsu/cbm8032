@@ -1,0 +1,11 @@
+# Important:
+#
+# If you insert a new entry for "text" or "eol=", or you change an exisiting
+# entry from binary to "text" or "eol=", make sure that any existing files
+# of that type are normalized. The easiest way to do this is to type
+# "rm .git/index && git reset".
+#
+# This is a catch-all fallback entry for anything that's not matched below.
+# We need this only so that it's possible to turn on core.autocrlf without
+# having to fear accidental corruption of binary files that look like text.
+*                     -text
