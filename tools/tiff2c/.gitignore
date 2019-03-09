@@ -1,0 +1,7 @@
+.gradle
+.idea/workspace.xml
+/build/
+build/
+out/
+temp/
+*.sublime-workspace
