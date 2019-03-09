@@ -6,8 +6,6 @@ import com.sun.media.jai.codec.ImageCodec;
 import com.sun.media.jai.codec.TIFFDecodeParam;
 
 fun main(args : Array<String>) {
-    println("Hello, world!")
-
     val fileName = "E:/dev/Robert/errsu-cbm8032/doc/PetASCII.tif"
     val readers = javax.imageio.ImageIO.getImageReadersBySuffix("tiff")
 
@@ -31,21 +29,17 @@ fun main(args : Array<String>) {
             for (i in 0 until pageCount) {
 
                 val bufferedImage = _imageReader.read(i)
-                println("unsigned char image[] = {")
+                println("unsigned char petASCIIImage[] = {")
 
                 val width = bufferedImage.width
                 val height = bufferedImage.height
-                for (y in 0 until height) {
-                    if (y % 25 == 0) {
-                        println("  // line ${y / 25}")
-                    }
-                    if (y % 25 != 24) {
+                for (y in height - 1 downTo 0) {
+                    if (y % 25 == 24) {
+                        println("  // line ${(25 * 16 - y) / 25}")
+                    } else {
                         var accumulatedBits = 0
                         var bitCount = 0
                         for (x in 0 until width) {
-//                            if (x % 17 == 0) {
-//                                print("  ")
-//                            }
                             if (x % 17 != 16) {
                                 val rgb = bufferedImage.getRGB(x, y).and(0x00FFFFFF)
                                 val bit = if (rgb == 0) 0 else 1

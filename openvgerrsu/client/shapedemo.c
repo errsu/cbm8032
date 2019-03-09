@@ -27,7 +27,7 @@ void imagetest(int w, int h) {
 	Start(w, h);
 	Background(0, 0, 0);
 	VGImage img = makePetAsciiImage();
-  VGImage child1 = vgChildImage(img, 0, 0, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
+  VGImage child1 = vgChildImage(img, 0, PET_IMAGE_HEIGHT - PET_GLYPH_HEIGHT, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
 	vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
   vgLoadIdentity();
   vgTranslate(cx, cy);
