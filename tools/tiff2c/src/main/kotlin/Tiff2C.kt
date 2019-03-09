@@ -1,9 +1,6 @@
 package tiff2c
 
-import java.awt.image.BufferedImage
 import javax.imageio.ImageReader
-import sun.awt.image.ImageDecoder
-import javax.imageio.stream.ImageInputStream
 import java.io.File
 import com.sun.media.jai.codec.ImageCodec;
 import com.sun.media.jai.codec.TIFFDecodeParam;
@@ -43,22 +40,28 @@ fun main(args : Array<String>) {
                         println("  // line ${y / 25}")
                     }
                     if (y % 25 != 24) {
+                        var accumulatedBits = 0
+                        var bitCount = 0
                         for (x in 0 until width) {
-                            if (x % 17 == 0) {
-                                print("  ")
-                            }
-                            val rgb = bufferedImage.getRGB(x, y).and(0x00FFFFFF)
-                            val c = if (rgb == 0) '0' else if (rgb == 0x00FFFFFF) '1' else '?'
-                            if (x % 17 == 16) {
-                                // println()
-                            } else {
-                                print("$c, ")
+//                            if (x % 17 == 0) {
+//                                print("  ")
+//                            }
+                            if (x % 17 != 16) {
+                                val rgb = bufferedImage.getRGB(x, y).and(0x00FFFFFF)
+                                val bit = if (rgb == 0) 0 else 1
+                                accumulatedBits = accumulatedBits.or(bit.shl(bitCount))
+                                bitCount += 1
+                                if (bitCount == 8) {
+                                    print("0x%02x, ".format(accumulatedBits))
+                                    accumulatedBits = 0
+                                    bitCount = 0
+                                }
                             }
                         }
                         println()
                     }
                 }
-                println("}")
+                println("};")
             }
         }
     }

@@ -7,27 +7,40 @@
 #include "VG/vgu.h"
 #include "shapes.h"
 
+#define PET_GLYPH_WIDTH  16
+#define PET_GLYPH_HEIGHT 24
+#define PET_IMAGE_WIDTH  (16 * PET_GLYPH_WIDTH)
+#define PET_IMAGE_HEIGHT (16 * PET_GLYPH_HEIGHT)
+
+extern unsigned char petASCIIImage[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
+
+VGImage makePetAsciiImage() {
+	unsigned int dstride = PET_IMAGE_WIDTH / 8;
+	VGImage img = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
+	vgImageSubData(img, petASCIIImage, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+	return img;
+}
+
 void imagetest(int w, int h) {
-	int imgw = 422, imgh = 238;
+	int imgw = PET_IMAGE_WIDTH, imgh = PET_IMAGE_HEIGHT;
 	VGfloat cx = (w / 2) - (imgw / 2), cy = (h / 2) - (imgh / 2);
 	Start(w, h);
 	Background(0, 0, 0);
-	VGImage img = createImageFromJpeg("desert1.jpg");
-        VGImage child1 = vgChildImage(img, 0, 0, 20, 40);
-	// vgSetPixels(cx, cy, img, 0, 0, imgw, imgh);
-        vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
-        vgLoadIdentity();
-        vgTranslate(cx, cy);
-        vgDrawImage(img);
-        vgLoadIdentity();
-        vgTranslate(100, 400);
-        vgDrawImage(child1);
+	VGImage img = makePetAsciiImage();
+  VGImage child1 = vgChildImage(img, 0, 0, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
+	vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
+  vgLoadIdentity();
+  vgTranslate(cx, cy);
+  vgDrawImage(img);
+  vgLoadIdentity();
+  vgTranslate(100, 400);
+  vgDrawImage(child1);
 	vgDestroyImage(child1);
 	vgDestroyImage(img);
 	End();
 }
 
-// wait for a specific character 
+// wait for a specific character
 void waituntil(int endchar) {
     int key;
 
@@ -39,7 +52,7 @@ void waituntil(int endchar) {
     }
 }
 
-// main initializes the system and shows the picture. 
+// main initializes the system and shows the picture.
 // Exit and clean up when you hit [RETURN].
 int main(int argc, char **argv) {
 	int w, h;
@@ -519,7 +532,7 @@ void End() {
 	assert(eglGetError() == EGL_SUCCESS);
 }
 
-// SaveEnd dumps the raster before rendering to the display 
+// SaveEnd dumps the raster before rendering to the display
 void SaveEnd(const char *filename) {
 	FILE *fp;
 	assert(vgGetError() == VG_NO_ERROR);
@@ -585,14 +598,14 @@ void CbezierOutline(VGfloat sx, VGfloat sy, VGfloat cx, VGfloat cy, VGfloat px, 
 	makecurve(segments, coords, VG_STROKE_PATH);
 }
 
-// QBezierOutline makes a quadratic bezier curve, outlined 
+// QBezierOutline makes a quadratic bezier curve, outlined
 void QbezierOutline(VGfloat sx, VGfloat sy, VGfloat cx, VGfloat cy, VGfloat ex, VGfloat ey) {
 	VGubyte segments[] = { VG_MOVE_TO_ABS, VG_QUAD_TO };
 	VGfloat coords[] = { sx, sy, cx, cy, ex, ey };
 	makecurve(segments, coords, VG_STROKE_PATH);
 }
 
-// RectOutline makes a rectangle at the specified location and dimensions, outlined 
+// RectOutline makes a rectangle at the specified location and dimensions, outlined
 void RectOutline(VGfloat x, VGfloat y, VGfloat w, VGfloat h) {
 	VGPath path = newpath();
 	vguRect(path, x, y, w, h);
@@ -600,7 +613,7 @@ void RectOutline(VGfloat x, VGfloat y, VGfloat w, VGfloat h) {
 	vgDestroyPath(path);
 }
 
-// RoundrectOutline  makes an rounded rectangle at the specified location and dimensions, outlined 
+// RoundrectOutline  makes an rounded rectangle at the specified location and dimensions, outlined
 void RoundrectOutline(VGfloat x, VGfloat y, VGfloat w, VGfloat h, VGfloat rw, VGfloat rh) {
 	VGPath path = newpath();
 	vguRoundRect(path, x, y, w, h, rw, rh);
