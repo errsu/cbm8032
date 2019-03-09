@@ -28,9 +28,15 @@ void imagetest(int screenW, int screenH) {
   VGfloat cy = (screenH / 2) - (imgh / 2);
   Start(screenW, screenH);
   Background(0, 0, 0);
+  VGPaint paint = vgCreatePaint();
+  VGfloat paintColor[4] = { 0.1f, 0.7f, 0.2f, 1.0f };
+  vgSetParameterfv(paint, VG_PAINT_COLOR, 4, paintColor);
+  vgSetPaint(paint, VG_FILL_PATH);
   VGImage img = makePetAsciiImage();
   VGImage glyph = vgChildImage(img, 0, PET_IMAGE_HEIGHT - PET_GLYPH_HEIGHT, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
+  vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY);
+
   vgLoadIdentity();
   vgTranslate(cx, cy);
   vgDrawImage(img);
