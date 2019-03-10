@@ -17,7 +17,6 @@ extern "C" {
 	extern void Ellipse(VGfloat, VGfloat, VGfloat, VGfloat);
 	extern void Circle(VGfloat, VGfloat, VGfloat);
 	extern void Arc(VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat);
-	extern void Image(VGfloat, VGfloat, int, int, const char *);
 	extern void Start(int, int);
 	extern void End();
 	extern void SaveEnd(const char *);
@@ -54,7 +53,6 @@ extern "C" {
 	extern void EllipseOutline(VGfloat, VGfloat, VGfloat, VGfloat);
 	extern void CircleOutline(VGfloat, VGfloat, VGfloat);
 	extern void ArcOutline(VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat);
-	extern VGImage CreateImageFromJpeg(const char *);
 #if defined(__cplusplus)
 }
 #endif
