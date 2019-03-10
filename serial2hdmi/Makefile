@@ -1,0 +1,17 @@
+
+LIBFLAGS=-L/opt/vc/lib -lbrcmEGL -lbrcmGLESv2 -lbcm_host -lpthread
+INCLUDEFLAGS=-I/opt/vc/include -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vcos/pthreads -fPIC -I.
+
+all:	serial2hdmi screensize
+
+serial2hdmi:	serial2hdmi.c petscii.c libgraphics.o graphics.h
+	gcc -Wall $(INCLUDEFLAGS) -o serial2hdmi serial2hdmi.c petscii.c libgraphics.o $(LIBFLAGS)
+
+screensize:	screensize.c libgraphics.o  graphics.h
+	gcc -Wall $(INCLUDEFLAGS) -o screensize screensize.c libgraphics.o $(LIBFLAGS)
+
+libgraphics.o:	libgraphics.c graphics.h
+	gcc -O2 -Wall $(INCLUDEFLAGS) -c libgraphics.c
+
+clean:
+	rm -f *.o *.inc *.so *.c~ *.h~

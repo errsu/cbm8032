@@ -1,3 +1,6 @@
+// Using code from https://github.com/ajstarks/openvg,
+// stripped off vector graphics, windowing etc.
+// See LICENSE file.
 //
 // libshapes: high-level OpenVG API
 // Anthony Starks (ajstarks@gmail.com)

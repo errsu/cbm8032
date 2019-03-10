@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include "VG/openvg.h"
 #include "VG/vgu.h"
-#include "shapes.h"
+#include "graphics.h"
 
 int main() {
 	int width, height;

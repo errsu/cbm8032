@@ -5,32 +5,32 @@
 #include <fcntl.h>
 #include "VG/openvg.h"
 #include "VG/vgu.h"
-#include "shapes.h"
+#include "graphics.h"
 
 #define PET_GLYPH_WIDTH  16
 #define PET_GLYPH_HEIGHT 24
 #define PET_IMAGE_WIDTH  (16 * PET_GLYPH_WIDTH)
 #define PET_IMAGE_HEIGHT (16 * PET_GLYPH_HEIGHT)
 
-extern unsigned char petASCIIImage[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
+extern unsigned char petSciiImage[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
 
-VGImage makePetAsciiImage() {
+VGImage makePetSciiImage() {
   unsigned int dstride = PET_IMAGE_WIDTH / 8;
   VGImage img = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
-  vgImageSubData(img, petASCIIImage, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  vgImageSubData(img, petSciiImage, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
   return img;
 }
 
 VGImage glyphs[256];
 
-void prepareGlyphs(VGImage petAsciiImage)
+void prepareGlyphs(VGImage petSciiImage)
 {
   for (unsigned int glyphRow = 0; glyphRow < 16; glyphRow++) {
     for (unsigned int glyphCol = 0; glyphCol < 16; glyphCol++) {
       unsigned int index = glyphRow * 16 + glyphCol;
       VGint x = glyphCol * PET_GLYPH_WIDTH;
       VGint y = PET_IMAGE_HEIGHT - ((glyphRow + 1) * PET_GLYPH_HEIGHT);
-      glyphs[index] = vgChildImage(petAsciiImage, x, y, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
+      glyphs[index] = vgChildImage(petSciiImage, x, y, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
     }
   }
 }
@@ -98,7 +98,7 @@ void imagetest(int screenW, int screenH) {
   VGfloat paintColor[4] = { 0.1f, 0.7f, 0.2f, 1.0f };
   vgSetParameterfv(paint, VG_PAINT_COLOR, 4, paintColor);
   vgSetPaint(paint, VG_FILL_PATH);
-  VGImage img = makePetAsciiImage();
+  VGImage img = makePetSciiImage();
   prepareGlyphs(img);
   // VGImage glyph = vgChildImage(img, 0, PET_IMAGE_HEIGHT - PET_GLYPH_HEIGHT, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
