@@ -16,10 +16,6 @@
 #include "eglstate.h"  // data structures for graphics state
 
 static STATE_T _state, *state = &_state;	// global graphics state
-static int init_x = 0;		// Initial window position and size
-static int init_y = 0;
-static unsigned int init_w = 0;
-static unsigned int init_h = 0;
 //
 // Terminal settings
 //
@@ -65,27 +61,12 @@ void dumpscreen(int w, int h, FILE * fp) {
 	free(ScreenBuffer);
 }
 
-// InitWindowSize requests a specific window size & position, if not called
-// then InitOpenVG() will open a full screen window.
-// Done this way to preserve the original InitOpenVG() behaviour.
-void InitWindowSize(int x, int y, unsigned int w, unsigned int h) {
-	init_x = x;
-	init_y = y;
-	init_w = w;
-	init_h = h;
-}
-
 // InitOpenVG sets the system to its initial state
 void InitOpenVG(int *w, int *h) {
 	bcm_host_init();
-	memset(state, 0, sizeof(*state));
-	state->window_x = init_x;
-	state->window_y = init_y;
-	state->window_width = init_w;
-	state->window_height = init_h;
 	oglinit(state);
-	*w = state->window_width;
-	*h = state->window_height;
+	*w = state->screen_width;
+	*h = state->screen_height;
 }
 
 // FinishOpenVG cleans up
@@ -379,7 +360,7 @@ void Background(unsigned int r, unsigned int g, unsigned int b) {
 	VGfloat colour[4];
 	RGB(r, g, b, colour);
 	vgSetfv(VG_CLEAR_COLOR, 4, colour);
-	vgClear(0, 0, state->window_width, state->window_height);
+	vgClear(0, 0, state->screen_width, state->screen_height);
 }
 
 // BackgroundRGB clears the screen to a background color with alpha
@@ -387,28 +368,18 @@ void BackgroundRGB(unsigned int r, unsigned int g, unsigned int b, VGfloat a) {
 	VGfloat colour[4];
 	RGBA(r, g, b, a, colour);
 	vgSetfv(VG_CLEAR_COLOR, 4, colour);
-	vgClear(0, 0, state->window_width, state->window_height);
+	vgClear(0, 0, state->screen_width, state->screen_height);
 }
 
 // WindowClear clears the window to previously set background colour
 void WindowClear() {
-	vgClear(0, 0, state->window_width, state->window_height);
+	vgClear(0, 0, state->screen_width, state->screen_height);
 }
 
 // AreaClear clears a given rectangle in window coordinates (not affected by
 // transformations)
 void AreaClear(unsigned int x, unsigned int y, unsigned int w, unsigned int h) {
 	vgClear(x, y, w, h);
-}
-
-// WindowOpacity sets the  window opacity
-void WindowOpacity(unsigned int a) {
-	dispmanChangeWindowOpacity(state, a);
-}
-
-// WindowPosition moves the window to given position
-void WindowPosition(int x, int y) {
-	dispmanMoveWindow(state, x, y);
 }
 
 // Outlined shapes

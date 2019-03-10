@@ -41,11 +41,8 @@ extern "C" {
 	extern void RawTerm();
 
 	// Added by Paeryn
-	extern void InitWindowSize(int x, int y, unsigned int w, unsigned int h);
 	extern void AreaClear(unsigned int x, unsigned int y, unsigned int w, unsigned int h);
 	extern void WindowClear();
-	extern void WindowOpacity(unsigned int alpha);
-	extern void WindowPosition(int x, int y);
 	extern void CbezierOutline(VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat);
 	extern void QbezierOutline(VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat);
 	extern void RectOutline(VGfloat, VGfloat, VGfloat, VGfloat);
