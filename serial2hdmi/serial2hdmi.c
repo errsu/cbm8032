@@ -44,7 +44,7 @@ void destroyGlyphs()
 }
 
 static unsigned char petsciiToRomIndex[256] = {
-// 0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F
+//  0    1    2    3    4    5    6    7    8    9    A    B    C    D    E    F
    32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32, // 00 .. 0F
    32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32, // 10 .. 1F
    32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,  47, // 20 .. 2F
@@ -83,8 +83,8 @@ static unsigned char exampleScreen[25 * 80 + 1] = "\
 15       .         .         .         .         .         .         .         .\
 16       .         .         .         .         .         .         .         .\
 17       .         .         .         .         .         .         .         .\
-18       .         .         .         .         .         .         .         .\
-19       .         .         .         .         .         .         .         .\
+18       .         . \xA6\xA6      .         .         .         .         .         .\
+19       .         . \xA6\xA6      .         .         .         .         .         .\
 20       .         .         .         .         .         .         .         .\
 21       .         .         .         .         .         .         .         .\
 22       .         .         .         .         .         .         .         .\
@@ -108,23 +108,24 @@ void imagetest(int screenW, int screenH) {
   vgSetPaint(paint, VG_FILL_PATH);
   VGImage img = makePetSciiImage();
   prepareGlyphs(img);
-  // VGImage glyph = vgChildImage(img, 0, PET_IMAGE_HEIGHT - PET_GLYPH_HEIGHT, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
+
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
   vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY);
 
-  // draw screen centered
-  vgLoadIdentity();
-  vgTranslate((screenW - 80 * PET_GLYPH_WIDTH) / 2,
-              (screenH + PET_GLYPH_HEIGHT * 24) / 2);
+  VGfloat scaleX = 20.0f / 16.0f;
+  VGfloat scaleY = 30.0f / 24.0f;
 
-  for (unsigned int row = 0; row < 25; row++) {
-    for (unsigned int col = 0; col < 80; col++) {
-      unsigned int index = row * 80 + col;
-      unsigned int cbmCode = screenContent[index];
+  for (int row = 0; row < 25; row++) {
+    for (int col = 0; col < 80; col++) {
+      int index = row * 80 + col;
+      unsigned char cbmCode = screenContent[index];
+      vgLoadIdentity();
+      VGfloat dx = (VGfloat)screenW / 2.0f + scaleX * (VGfloat)(PET_GLYPH_WIDTH * (col - 40));
+      VGfloat dy = (VGfloat)screenH / 2.0f + scaleY * (VGfloat)(PET_GLYPH_HEIGHT * (12 - row));
+      vgTranslate(dx, dy);
+      vgScale(scaleX, scaleY);
       vgDrawImage(glyphs[cbmCode]);
-      vgTranslate(PET_GLYPH_WIDTH, 0);
     }
-    vgTranslate(-PET_GLYPH_WIDTH * 80, -PET_GLYPH_HEIGHT);
   }
 
   destroyGlyphs();
