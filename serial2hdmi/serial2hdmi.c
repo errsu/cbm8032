@@ -17,8 +17,15 @@ extern unsigned char petSciiImage[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
 
 VGImage makePetSciiImage() {
   unsigned int dstride = PET_IMAGE_WIDTH / 8;
+  VGImage imgTemp = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
+  vgImageSubData(imgTemp, petSciiImage, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
   VGImage img = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
-  vgImageSubData(img, petSciiImage, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  // if gaussian blur
+  // vgGaussianBlur(img, imgTemp, 0.6f, 0.6f, VG_TILE_PAD);
+  // else
+  vgCopyImage(img, 0, 0, imgTemp, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_FALSE);
+  // endif
+  vgDestroyImage(imgTemp);
   return img;
 }
 
@@ -103,7 +110,7 @@ void imagetest(int screenW, int screenH) {
   Start(screenW, screenH);
   Background(0, 0, 0);
   VGPaint paint = vgCreatePaint();
-  VGfloat paintColor[4] = { 0.1f, 0.7f, 0.2f, 1.0f };
+  VGfloat paintColor[4] = { 0.2f, 0.9f, 0.3f, 1.0f };
   vgSetParameterfv(paint, VG_PAINT_COLOR, 4, paintColor);
   vgSetPaint(paint, VG_FILL_PATH);
   VGImage img = makePetSciiImage();
@@ -112,8 +119,16 @@ void imagetest(int screenW, int screenH) {
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
   vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY);
 
-  VGfloat scaleX = 20.0f / 16.0f;
-  VGfloat scaleY = 30.0f / 24.0f;
+  // if 1920 x 1080
+  VGfloat scaleX = 24.0f / 16.0f;
+  VGfloat scaleY = 36.0f / 24.0f;
+  // else if 1680 x 1050
+  // VGfloat scaleX = 20.0f / 16.0f;
+  // VGfloat scaleY = 30.0f / 24.0f;
+  // else unscaled
+  // VGfloat scaleX = 16.0f / 16.0f;
+  // VGfloat scaleY = 24.0f / 24.0f;
+  // endif
 
   for (int row = 0; row < 25; row++) {
     for (int col = 0; col < 80; col++) {
