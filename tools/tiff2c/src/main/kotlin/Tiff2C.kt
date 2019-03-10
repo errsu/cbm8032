@@ -4,8 +4,9 @@ import javax.imageio.ImageReader
 import java.io.File
 import com.sun.media.jai.codec.ImageCodec;
 import com.sun.media.jai.codec.TIFFDecodeParam;
+import kotlin.experimental.and
 
-fun main(args : Array<String>) {
+fun tiff2c() {
     val fileName = "E:/dev/Robert/errsu-cbm8032/doc/PetASCII.tif"
     val readers = javax.imageio.ImageIO.getImageReadersBySuffix("tiff")
 
@@ -59,4 +60,28 @@ fun main(args : Array<String>) {
             }
         }
     }
+}
+
+fun printBin() {
+
+    val fileName = "E:/dev/Robert/errsu-cbm8032/doc/characters-german.bin"
+    val content = File(fileName).readBytes()
+    content.forEachIndexed() { index, byte ->
+        if (index % 8 == 0) {
+            println("----------")
+        }
+        print("|")
+        repeat(8) {
+            print(if(byte.toInt().and(1.shl(7 - it)) == 0) " " else "#")
+        }
+        println("|")
+        if (index % 8 == 7) {
+            println("----------")
+        }
+    }
+}
+
+fun main(args : Array<String>) {
+    // tiff2c()
+    printBin()
 }
