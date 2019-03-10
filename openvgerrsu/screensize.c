@@ -9,8 +9,8 @@
 
 int main() {
 	int width, height;
-	init(&width, &height);				   // Graphics initialization
+	InitOpenVG(&width, &height);				   // Graphics initialization
 	printf("%d %d\n", width, height);
-	finish();					   // Graphics cleanup
+	FinishOpenVG();					   // Graphics cleanup
 	exit(0);
 }

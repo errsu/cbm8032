@@ -29,13 +29,13 @@ static unsigned int init_h = 0;
 struct termios new_term_attr;
 struct termios orig_term_attr;
 
-// saveterm saves the current terminal settings
-void saveterm() {
+// SaveTerm saves the current terminal settings
+void SaveTerm() {
 	tcgetattr(fileno(stdin), &orig_term_attr);
 }
 
-// rawterm sets the terminal to raw mode
-void rawterm() {
+// RawTerm sets the terminal to raw mode
+void RawTerm() {
 	memcpy(&new_term_attr, &orig_term_attr, sizeof(struct termios));
 	new_term_attr.c_lflag &= ~(ICANON | ECHO | ECHOE | ECHOK | ECHONL | ECHOPRT | ECHOKE | ICRNL);
 	new_term_attr.c_cc[VTIME] = 0;
@@ -44,13 +44,13 @@ void rawterm() {
 }
 
 // restore resets the terminal to the previously saved setting
-void restoreterm() {
+void RestoreTerm() {
 	tcsetattr(fileno(stdin), TCSANOW, &orig_term_attr);
 }
 
-// createImageFromJpeg decompresses a JPEG image to the standard image format
+// CreateImageFromJpeg decompresses a JPEG image to the standard image format
 // source: https://github.com/ileben/ShivaVG/blob/master/examples/test_image.c
-VGImage createImageFromJpeg(const char *filename) {
+VGImage CreateImageFromJpeg(const char *filename) {
 	FILE *infile;
 	struct jpeg_decompress_struct jdc;
 	struct jpeg_error_mgr jerr;
@@ -145,8 +145,8 @@ VGImage createImageFromJpeg(const char *filename) {
 	return img;
 }
 
-// makeimage makes an image from a raw raster of red, green, blue, alpha values
-void makeimage(VGfloat x, VGfloat y, int w, int h, VGubyte * data) {
+// MakeImage makes an image from a raw raster of red, green, blue, alpha values
+void MakeImage(VGfloat x, VGfloat y, int w, int h, VGubyte * data) {
 	unsigned int dstride = w * 4;
 	VGImageFormat rgbaFormat = VG_sABGR_8888;
 	VGImage img = vgCreateImage(rgbaFormat, w, h, VG_IMAGE_QUALITY_BETTER);
@@ -157,7 +157,7 @@ void makeimage(VGfloat x, VGfloat y, int w, int h, VGubyte * data) {
 
 // Image places an image at the specifed location
 void Image(VGfloat x, VGfloat y, int w, int h, const char *filename) {
-	VGImage img = createImageFromJpeg(filename);
+	VGImage img = CreateImageFromJpeg(filename);
 	vgSetPixels(x, y, img, 0, 0, w, h);
 	vgDestroyImage(img);
 }
@@ -170,18 +170,18 @@ void dumpscreen(int w, int h, FILE * fp) {
 	free(ScreenBuffer);
 }
 
-// initWindowSize requests a specific window size & position, if not called
-// then init() will open a full screen window.
-// Done this way to preserve the original init() behaviour.
-void initWindowSize(int x, int y, unsigned int w, unsigned int h) {
+// InitWindowSize requests a specific window size & position, if not called
+// then InitOpenVG() will open a full screen window.
+// Done this way to preserve the original InitOpenVG() behaviour.
+void InitWindowSize(int x, int y, unsigned int w, unsigned int h) {
 	init_x = x;
 	init_y = y;
 	init_w = w;
 	init_h = h;
 }
 
-// init sets the system to its initial state
-void init(int *w, int *h) {
+// InitOpenVG sets the system to its initial state
+void InitOpenVG(int *w, int *h) {
 	bcm_host_init();
 	memset(state, 0, sizeof(*state));
 	state->window_x = init_x;
@@ -193,8 +193,8 @@ void init(int *w, int *h) {
 	*h = state->window_height;
 }
 
-// finish cleans up
-void finish() {
+// FinishOpenVG cleans up
+void FinishOpenVG() {
 	eglSwapBuffers(state->display, state->surface);
 	eglMakeCurrent(state->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 	eglDestroySurface(state->display, state->surface);
@@ -230,8 +230,8 @@ void Scale(VGfloat x, VGfloat y) {
 // Style functions
 //
 
-// setfill sets the fill color
-void setfill(VGfloat color[4]) {
+// SetFill sets the fill color
+void SetFill(VGfloat color[4]) {
 	VGPaint fillPaint = vgCreatePaint();
 	vgSetParameteri(fillPaint, VG_PAINT_TYPE, VG_PAINT_TYPE_COLOR);
 	vgSetParameterfv(fillPaint, VG_PAINT_COLOR, 4, color);
@@ -239,8 +239,8 @@ void setfill(VGfloat color[4]) {
 	vgDestroyPaint(fillPaint);
 }
 
-// setstroke sets the stroke color
-void setstroke(VGfloat color[4]) {
+// SetStroke sets the stroke color
+void SetStroke(VGfloat color[4]) {
 	VGPaint strokePaint = vgCreatePaint();
 	vgSetParameteri(strokePaint, VG_PAINT_TYPE, VG_PAINT_TYPE_COLOR);
 	vgSetParameterfv(strokePaint, VG_PAINT_COLOR, 4, color);
@@ -289,14 +289,14 @@ void RGB(unsigned int r, unsigned int g, unsigned int b, VGfloat color[4]) {
 void Stroke(unsigned int r, unsigned int g, unsigned int b, VGfloat a) {
 	VGfloat color[4];
 	RGBA(r, g, b, a, color);
-	setstroke(color);
+	SetStroke(color);
 }
 
 // Fill sets the fillcolor, defined as a RGBA quad.
 void Fill(unsigned int r, unsigned int g, unsigned int b, VGfloat a) {
 	VGfloat color[4];
 	RGBA(r, g, b, a, color);
-	setfill(color);
+	SetFill(color);
 }
 
 // setstops sets color stops for gradients
@@ -449,8 +449,8 @@ void Start(int width, int height) {
 	vgSetfv(VG_CLEAR_COLOR, 4, color);
 	vgClear(0, 0, width, height);
 	color[0] = 0, color[1] = 0, color[2] = 0;
-	setfill(color);
-	setstroke(color);
+	SetFill(color);
+	SetStroke(color);
 	StrokeWidth(0);
 	vgLoadIdentity();
 }
@@ -462,7 +462,7 @@ void End() {
 	assert(eglGetError() == EGL_SUCCESS);
 }
 
-// SaveEnd dumps the raster before rendering to the display 
+// SaveEnd dumps the raster before rendering to the display
 void SaveEnd(const char *filename) {
 	FILE *fp;
 	assert(vgGetError() == VG_NO_ERROR);
@@ -528,14 +528,14 @@ void CbezierOutline(VGfloat sx, VGfloat sy, VGfloat cx, VGfloat cy, VGfloat px, 
 	makecurve(segments, coords, VG_STROKE_PATH);
 }
 
-// QBezierOutline makes a quadratic bezier curve, outlined 
+// QBezierOutline makes a quadratic bezier curve, outlined
 void QbezierOutline(VGfloat sx, VGfloat sy, VGfloat cx, VGfloat cy, VGfloat ex, VGfloat ey) {
 	VGubyte segments[] = { VG_MOVE_TO_ABS, VG_QUAD_TO };
 	VGfloat coords[] = { sx, sy, cx, cy, ex, ey };
 	makecurve(segments, coords, VG_STROKE_PATH);
 }
 
-// RectOutline makes a rectangle at the specified location and dimensions, outlined 
+// RectOutline makes a rectangle at the specified location and dimensions, outlined
 void RectOutline(VGfloat x, VGfloat y, VGfloat w, VGfloat h) {
 	VGPath path = newpath();
 	vguRect(path, x, y, w, h);
@@ -543,7 +543,7 @@ void RectOutline(VGfloat x, VGfloat y, VGfloat w, VGfloat h) {
 	vgDestroyPath(path);
 }
 
-// RoundrectOutline  makes an rounded rectangle at the specified location and dimensions, outlined 
+// RoundrectOutline  makes an rounded rectangle at the specified location and dimensions, outlined
 void RoundrectOutline(VGfloat x, VGfloat y, VGfloat w, VGfloat h, VGfloat rw, VGfloat rh) {
 	VGPath path = newpath();
 	vguRoundRect(path, x, y, w, h, rw, rh);

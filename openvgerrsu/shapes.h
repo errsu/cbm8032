@@ -23,10 +23,10 @@ extern "C" {
 	extern void SaveEnd(const char *);
 	extern void Background(unsigned int, unsigned int, unsigned int);
 	extern void BackgroundRGB(unsigned int, unsigned int, unsigned int, VGfloat);
-	extern void init(int *, int *);
-	extern void finish();
-	extern void setfill(VGfloat[4]);
-	extern void setstroke(VGfloat[4]);
+	extern void InitOpenVG(int *, int *);
+	extern void FinishOpenVG();
+	extern void SetFill(VGfloat[4]);
+	extern void SetStroke(VGfloat[4]);
 	extern void StrokeWidth(VGfloat);
 	extern void Stroke(unsigned int, unsigned int, unsigned int, VGfloat);
 	extern void Fill(unsigned int, unsigned int, unsigned int, VGfloat);
@@ -36,13 +36,13 @@ extern "C" {
 	extern void FillRadialGradient(VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat *, int);
 	extern void ClipRect(VGint x, VGint y, VGint w, VGint h);
 	extern void ClipEnd();
-	extern void makeimage(VGfloat, VGfloat, int, int, VGubyte *);
-	extern void saveterm();
-	extern void restoreterm();
-	extern void rawterm();
+	extern void MakeImage(VGfloat, VGfloat, int, int, VGubyte *);
+	extern void SaveTerm();
+	extern void RestoreTerm();
+	extern void RawTerm();
 
 	// Added by Paeryn
-	extern void initWindowSize(int x, int y, unsigned int w, unsigned int h);
+	extern void InitWindowSize(int x, int y, unsigned int w, unsigned int h);
 	extern void AreaClear(unsigned int x, unsigned int y, unsigned int w, unsigned int h);
 	extern void WindowClear();
 	extern void WindowOpacity(unsigned int alpha);
@@ -54,7 +54,7 @@ extern "C" {
 	extern void EllipseOutline(VGfloat, VGfloat, VGfloat, VGfloat);
 	extern void CircleOutline(VGfloat, VGfloat, VGfloat);
 	extern void ArcOutline(VGfloat, VGfloat, VGfloat, VGfloat, VGfloat, VGfloat);
-	extern VGImage createImageFromJpeg(const char *);
+	extern VGImage CreateImageFromJpeg(const char *);
 #if defined(__cplusplus)
 }
 #endif
