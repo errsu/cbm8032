@@ -100,9 +100,6 @@ void imagetest(int screenW, int screenH) {
     screenContent[i] = petsciiToRomIndex[exampleScreen[i]];
   }
 
-  int imgW = PET_IMAGE_WIDTH;
-  int imgH = PET_IMAGE_HEIGHT;
-
   Start(screenW, screenH);
   Background(0, 0, 0);
   VGPaint paint = vgCreatePaint();
@@ -115,13 +112,10 @@ void imagetest(int screenW, int screenH) {
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
   vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY);
 
+  // draw screen centered
   vgLoadIdentity();
-  vgTranslate(screenW - imgW, screenH - imgH);
-  vgDrawImage(img);
-
-  // draw screen in lower left corner
-  vgLoadIdentity();
-  vgTranslate(0, PET_GLYPH_HEIGHT * 24);
+  vgTranslate((screenW - 80 * PET_GLYPH_WIDTH) / 2,
+              (screenH + PET_GLYPH_HEIGHT * 24) / 2);
 
   for (unsigned int row = 0; row < 25; row++) {
     for (unsigned int col = 0; col < 80; col++) {
