@@ -292,7 +292,6 @@ void renderer(chanend c_observer, chanend c_tx)
           {
             // could not send out frame until next arrived
             // -> skipping frame signal
-            printf("frame signal skipped\n");
             break;
           }
           safememcpy(tx_buffer + 40, rx_buffer, sizeof(rx_buffer));
@@ -398,13 +397,17 @@ static void collector(streaming chanend c_rx, chanend c_collector)
 
 //----------------------------------------------------------------------------------------
 
+static unsigned needs_frame_sync = 1;
+
 static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
 {
   static unsigned char frame = 0;
+  static unsigned framecount = 0;
+  static unsigned errorcount = 0;
 
   unsigned char expected = (bufnum == 0) ? 0 : (bufnum == 51) ? 0 : (0x41 + frame);
   unsigned char graphic = 0xFF;
-  unsigned ok = 1;
+
   for (unsigned i = 0; i < 40; i++)
   {
     unsigned char bb = buffer[i];
@@ -414,17 +417,32 @@ static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
     }
     else if (bb != expected)
     {
-      printf("at bufnum %d i %d expected: %02x found: %02x\n", bufnum, i, expected, bb);
-      ok = 0;
+      if (needs_frame_sync) {
+        frame = bb - 0x41;
+        expected = bb;
+        needs_frame_sync = 0;
+      } else {
+        errorcount++;
+      }
     }
-  }
-  if (ok)
-  {
-    printf("%d %02x %02x OK\n", frame, bufnum, graphic);
   }
   if (bufnum == 51)
   {
     frame += 1;
+    if (frame == 26) {
+      frame = 0;
+    }
+    if (errorcount) {
+      printf("errors in frame %d: %d\n", framecount, errorcount);
+      errorcount = 0;
+      needs_frame_sync = 1;
+    }
+    framecount++;
+    if (framecount == 60) {
+      printf(".\n");
+      needs_frame_sync = 1; // spending too much time in receiver -> need resync afterwards
+      framecount = 0;
+    }
   }
 }
 
@@ -447,6 +465,7 @@ static void init_receiver_context(t_receiver_context& context)
 static void handle_sync_loss(t_receiver_context& context, unsigned char byte)
 {
   printf("out of sync at bufnum %d count %d - received %02x\n", context.bufnum, context.count, byte);
+  needs_frame_sync = 1;
 }
 
 static void handle_received_byte(unsigned char byte, t_receiver_context& context)
