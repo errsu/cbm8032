@@ -344,6 +344,8 @@ void renderer(chanend c_observer, chanend c_tx)
   }
 }
 
+#define TEST_RECEIVER 0
+#if TEST_RECEIVER
 // Test receiver ------------------------------------------------------------
 
 on tile[0]: in port p_uart_rx = XS1_PORT_1E;  // X0D13 J7 pin 4
@@ -544,11 +546,15 @@ static void test_receiver(chanend c_collector)
     }
   }
 }
+#endif
 
 int main()
 {
-  chan c_observer, c_tx, c_collector;
+  chan c_observer, c_tx;
+#if TEST_RECEIVER
+  chan c_collector;
   streaming chan c_rx;
+#endif
 
   par
   {
@@ -556,9 +562,11 @@ int main()
     on tile[0]: renderer(c_observer, c_tx);
     on tile[0]: uart_tx(p_uart_tx, c_tx);
 
+#if TEST_RECEIVER
     on tile[0]: uart_rx(c_rx);
     on tile[0]: collector(c_rx, c_collector);
     on tile[0]: test_receiver(c_collector);
+#endif
   }
   return 0;
 }
