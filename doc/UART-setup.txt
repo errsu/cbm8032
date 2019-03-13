@@ -1,0 +1,30 @@
+Setting up serial UART in Raspi
+
+Info from:
+https://raspberry-projects.com/programming-in-c/uart-serial-port/using-the-uart
+
+To disable serial as terminal input, in file /root/cmdline.txt,
+remove "console=serial0,115200" from the commandline.
+
+Before the line read:
+dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0p7 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait splash plymouth.ignore-serial-consoles
+
+It is not clear, though, if this is still needed.
+
+In RaspiMenu->Einstellungen->Raspberry-Pi-Konfiguration
+in Tab Schnittstellen -> Serial Port click Aktiviert and Ok (reboot).
+
+This creates /dev/serial0.
+
+But, it can only handle 1MBit/s
+
+According to https://www.circuits.dk/setup-raspberry-pi-3-gpio-uart/
+swapped uarts, and use /dev/serial0 in the code, same pins (RX = pin10).
+To do this, sudo open the file /boot/config.txt.
+It already has as last line:
+enable_uart=1
+
+Add another line:
+dtoverlay=pi3-miniuart-bt
+
+This seems to enable 2MBit/s easily.

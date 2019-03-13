@@ -62,7 +62,7 @@
 // init_uart_baud=2000000
 
 on tile[0]: const clock refClk = XS1_CLKBLK_REF;
-#define TICKS_PER_BIT 80
+#define TICKS_PER_BIT 50
 
 void uart_tx(out port p, chanend c_tx) {
 
