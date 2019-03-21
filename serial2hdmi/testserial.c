@@ -64,12 +64,12 @@ static int open_uart0()
   return uart0_filestream;
 }
 
-static void close_uart0(int uart0_filestream)
-{
-  if (close(uart0_filestream) == -1) {
-    perror("unable to close /dev/serial0");
-  }
-}
+// static void close_uart0(int uart0_filestream)
+// {
+//   if (close(uart0_filestream) == -1) {
+//     perror("unable to close /dev/serial0");
+//   }
+// }
 
 static int read_bytes(int uart0_filestream, unsigned char* pBuffer, unsigned int buflen)
 {
@@ -92,16 +92,142 @@ static int read_bytes(int uart0_filestream, unsigned char* pBuffer, unsigned int
   }
 }
 
-// wait for a specific character
-void waituntil(int endchar) {
-    int key;
-    for (;;) {
-        key = getchar();
-        if (key == endchar || key == '\n') {
-            break;
-        }
+//----------------------------------------------------------------------------------------
+
+static unsigned needs_frame_sync = 1;
+
+static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
+{
+  static unsigned char frame = 0;
+  static unsigned framecount = 0;
+  static unsigned errorcount = 0;
+
+  unsigned char expected = (bufnum == 0) ? 0 : (bufnum == 51) ? 0 : (0x41 + frame);
+  unsigned char graphic = 0xFF;
+
+  for (unsigned i = 0; i < 40; i++)
+  {
+    unsigned char bb = buffer[i];
+    if (bufnum == 51 && i == 0)
+    {
+      graphic = bb;
     }
+    else if (bb != expected)
+    {
+      if (needs_frame_sync) {
+        frame = bb - 0x41;
+        expected = bb;
+        needs_frame_sync = 0;
+      } else {
+        errorcount++;
+      }
+    }
+  }
+  if (bufnum == 51)
+  {
+    frame += 1;
+    if (frame == 26) {
+      frame = 0;
+    }
+    if (errorcount) {
+      printf("errors in frame %d: %d\n", framecount, errorcount);
+      errorcount = 0;
+      needs_frame_sync = 1;
+    }
+    framecount++;
+    if (framecount == 50) {
+      if (graphic) {
+        printf("+\n");
+      } else {
+        printf(".\n");
+      }
+      needs_frame_sync = 1; // spending too much time in receiver -> need resync afterwards
+      framecount = 0;
+    }
+  }
 }
+
+#define STATE_OUT_OF_SYNC    0
+#define STATE_COUNTING_ZEROS 1
+#define STATE_IN_SYNC        2
+
+typedef struct {
+  unsigned state;
+  unsigned bufnum;
+  unsigned count;
+  unsigned char buffer[40];
+} t_receiver_context;
+
+static void init_receiver_context(t_receiver_context* context)
+{
+  context->state = STATE_OUT_OF_SYNC;
+}
+
+static void handle_sync_loss(t_receiver_context* context, unsigned char byte)
+{
+  printf("out of sync at bufnum %d count %d - received %02x\n", context->bufnum, context->count, byte);
+  needs_frame_sync = 1;
+}
+
+static void handle_received_byte(unsigned char byte, t_receiver_context* context)
+{
+  switch(context->state)
+  {
+  case STATE_OUT_OF_SYNC:
+    if (byte != 0)
+    {
+      context->state = STATE_COUNTING_ZEROS;
+      context->count = 0;
+    }
+    break;
+  case STATE_COUNTING_ZEROS:
+    if (byte == 0)
+    {
+      context->count += 1;
+      if (context->count == 41)
+      {
+        context->state = STATE_IN_SYNC;
+        context->bufnum = 1;
+        context->count = 0;
+      }
+      else
+      {
+      }
+    }
+    else
+    {
+      context->count = 0;
+    }
+    break;
+
+  case STATE_IN_SYNC:
+    if (context->count < 40)
+    {
+      context->buffer[context->count] = byte;
+      context->count += 1;
+    }
+    else
+    {
+      if (byte == (unsigned char)context->bufnum)
+      {
+        handle_received_buffer(context->bufnum, context->buffer);
+        context->bufnum += 1;
+        context->count = 0;
+        if (context->bufnum == 52)
+        {
+          context->state = STATE_COUNTING_ZEROS;
+        }
+      }
+      else
+      {
+        handle_sync_loss(context, byte);
+        context->state = STATE_OUT_OF_SYNC;
+      }
+    }
+    break;
+  }
+}
+
 
 int main(int argc, char **argv) {
   int uart0_filestream = open_uart0();
@@ -110,24 +236,18 @@ int main(int argc, char **argv) {
     printf("usart opened\n");
   }
 
-  for (unsigned repeat = 0; repeat < 10; repeat++) {
+  t_receiver_context context;
+  init_receiver_context(&context);
+
+  while (1) {
     unsigned char buffer[256];
     int count = read_bytes(uart0_filestream, buffer, 256);
-    if (count >= 0) {
-      printf("%d bytes read\n", count);
-      for (unsigned i = 0; i < count; i++) {
-        printf("%02x ", buffer[i]);
-        if (i % 16 == 15) {
-          printf("\n");
-        }
-      }
+    for (unsigned i = 0; i < count; i++) {
+      handle_received_byte(buffer[i], &context);
     }
   }
 
-  // printf("press return to terminate\n");
-  // waituntil(0x1b);
-
-  close_uart0(uart0_filestream);
-  printf("exiting\n");
-  return 0;
+  // close_uart0(uart0_filestream);
+  // printf("exiting\n");
+  // return 0;
 }
