@@ -1,10 +1,13 @@
 LIBFLAGS=-L/opt/vc/lib -lbrcmEGL -lbrcmGLESv2 -lbcm_host -lpthread
 INCLUDEFLAGS=-I/opt/vc/include -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vcos/pthreads -fPIC -I.
 
-all:	serial2hdmi testserial screensize
+all:	displaytest testserial screensize
 
 serial2hdmi:	serial2hdmi.c petscii.c libgraphics.o graphics.h
 	gcc -Wall $(INCLUDEFLAGS) -o serial2hdmi serial2hdmi.c petscii.c libgraphics.o $(LIBFLAGS)
+
+displaytest:	displaytest.c petscii.c libgraphics.o graphics.h
+	gcc -Wall $(INCLUDEFLAGS) -o displaytest displaytest.c petscii.c libgraphics.o $(LIBFLAGS)
 
 testserial:	testserial.c
 	gcc -Wall $(INCLUDEFLAGS) -o testserial testserial.c $(LIBFLAGS)
