@@ -13,26 +13,30 @@
 #define PET_IMAGE_HEIGHT (16 * PET_GLYPH_HEIGHT)
 
 // PETSCII image contains glyphs in ROM index order
-extern unsigned char petSciiImage[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
+extern unsigned char petSciiImageData[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
 
-VGImage makePetSciiImage() {
+VGImage petSciiImage;
+
+void makePetSciiImage() {
   unsigned int dstride = PET_IMAGE_WIDTH / 8;
   VGImage imgTemp = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
-  vgImageSubData(imgTemp, petSciiImage, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
-  VGImage img = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
+  vgImageSubData(imgTemp, petSciiImageData, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  petSciiImage = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
   // if gaussian blur
   // vgGaussianBlur(img, imgTemp, 0.6f, 0.6f, VG_TILE_PAD);
   // else
-  vgCopyImage(img, 0, 0, imgTemp, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_FALSE);
+  vgCopyImage(petSciiImage, 0, 0, imgTemp, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_FALSE);
   // endif
   vgDestroyImage(imgTemp);
-  return img;
+}
+
+void destroyPetSciiImage() {
+  vgDestroyImage(petSciiImage);
 }
 
 VGImage glyphs[256];
 
-void prepareGlyphs(VGImage petSciiImage)
-{
+void prepareGlyphs() {
   for (unsigned int glyphRow = 0; glyphRow < 16; glyphRow++) {
     for (unsigned int glyphCol = 0; glyphCol < 16; glyphCol++) {
       unsigned int index = glyphRow * 16 + glyphCol;
@@ -101,7 +105,19 @@ static unsigned char exampleScreen[25 * 80 + 1] = "\
 
 static unsigned char screenContent[25 * 80]; // holds rom indices
 
-void imagetest(int screenW, int screenH, unsigned frame) {
+void prepareImageTest()
+{
+  makePetSciiImage();
+  prepareGlyphs();
+}
+
+void finishImageTest()
+{
+  destroyGlyphs();
+  destroyPetSciiImage();
+}
+
+void imageTest(int screenW, int screenH, unsigned frame) {
 
   for (unsigned int i = 0; i < 25 * 80; i++) {
     exampleScreen[32] = (unsigned char)(' ' + (frame % 32));
@@ -114,11 +130,10 @@ void imagetest(int screenW, int screenH, unsigned frame) {
   VGfloat paintColor[4] = { 0.2f, 0.9f, 0.3f, 1.0f };
   vgSetParameterfv(paint, VG_PAINT_COLOR, 4, paintColor);
   vgSetPaint(paint, VG_FILL_PATH);
-  VGImage img = makePetSciiImage();
-  prepareGlyphs(img);
 
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
-  vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY);
+  vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY); // costs 10%
+  vgSeti(VG_IMAGE_QUALITY, VG_IMAGE_QUALITY_BETTER); // antialiasing doesn't seem to take extra time
 
   // if 1920 x 1080
   VGfloat scaleX = 24.0f / 16.0f;
@@ -144,8 +159,6 @@ void imagetest(int screenW, int screenH, unsigned frame) {
     }
   }
 
-  destroyGlyphs();
-  vgDestroyImage(img);
   End();
 }
 
@@ -168,9 +181,11 @@ int main(int argc, char **argv) {
   SaveTerm();
   InitOpenVG(&w, &h);
   RawTerm();
+  prepareImageTest(w, h);
   for (unsigned i = 0; i < 600; i++) {
-    imagetest(w, h, i);
+    imageTest(w, h, i);
   }
+  finishImageTest();
   // waituntil(0x1b);
   RestoreTerm();
   FinishOpenVG();

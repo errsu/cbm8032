@@ -13,12 +13,12 @@
 #define PET_IMAGE_HEIGHT (16 * PET_GLYPH_HEIGHT)
 
 // PETSCII image contains glyphs in ROM index order
-extern unsigned char petSciiImage[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
+extern unsigned char petSciiImageData[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
 
 VGImage makePetSciiImage() {
   unsigned int dstride = PET_IMAGE_WIDTH / 8;
   VGImage imgTemp = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
-  vgImageSubData(imgTemp, petSciiImage, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  vgImageSubData(imgTemp, petSciiImageData, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
   VGImage img = vgCreateImage(VG_sABGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
   // if gaussian blur
   // vgGaussianBlur(img, imgTemp, 0.6f, 0.6f, VG_TILE_PAD);
