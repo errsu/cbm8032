@@ -97,7 +97,7 @@ void oglinit() {
 	dispman_update = vc_dispmanx_update_start(0);
 
 	dispman_element = vc_dispmanx_element_add(dispman_update, dispman_display, 0 /*layer */ , &dst_rect, 0 /*src */ ,
-						  &src_rect, DISPMANX_PROTECTION_NONE, NULL /*&alpha*/, 0 /*clamp */ ,
+						  &src_rect, DISPMANX_PROTECTION_NONE, &alpha, 0 /*clamp */ ,
 						  0 /*transform */ );
 
 	state->element = dispman_element;

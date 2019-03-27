@@ -22,11 +22,7 @@ void makePetSciiImage() {
   VGImage imgTemp = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
   vgImageSubData(imgTemp, petSciiImageData, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
   petSciiImage = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
-  // if gaussian blur
-  // vgGaussianBlur(img, imgTemp, 0.6f, 0.6f, VG_TILE_PAD);
-  // else
   vgCopyImage(petSciiImage, 0, 0, imgTemp, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_FALSE);
-  // endif
   vgDestroyImage(imgTemp);
 }
 
@@ -42,9 +38,6 @@ void prepareGlyphs() {
       unsigned int index = glyphRow * 16 + glyphCol;
       VGint x = glyphCol * PET_GLYPH_WIDTH;
       VGint y = PET_IMAGE_HEIGHT - ((glyphRow + 1) * PET_GLYPH_HEIGHT);
-      // VGImage childImage = vgCreateImage(VG_sXBGR_8888, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT, VG_IMAGE_QUALITY_BETTER);
-      // vgCopyImage(childImage, 0, 0, petSciiImage, x, y, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT, VG_FALSE);
-      // glyphs[index] = childImage;
       glyphs[index] = vgChildImage(petSciiImage, x, y, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
     }
   }
@@ -112,7 +105,6 @@ void prepareImageTest()
 {
   makePetSciiImage();
   prepareGlyphs();
-  // destroyPetSciiImage();
 }
 
 void finishImageTest()
