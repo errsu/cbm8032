@@ -21,9 +21,9 @@ VGImage petSciiImage;
 
 void makePetSciiImage() {
   unsigned int dstride = PET_IMAGE_WIDTH / 8;
-  VGImage imgTemp = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
+  VGImage imgTemp = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_NONANTIALIASED);
   vgImageSubData(imgTemp, petSciiImageData, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
-  petSciiImage = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
+  petSciiImage = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_NONANTIALIASED);
   vgCopyImage(petSciiImage, 0, 0, imgTemp, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_FALSE);
   vgDestroyImage(imgTemp);
 
@@ -136,7 +136,7 @@ void imageTest(int screenW, int screenH, unsigned frame) {
 
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
   vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_NORMAL);
-  vgSeti(VG_IMAGE_QUALITY, VG_IMAGE_QUALITY_BETTER); // antialiasing doesn't seem to take extra time
+  vgSeti(VG_IMAGE_QUALITY, VG_IMAGE_QUALITY_NONANTIALIASED); // does antialiasing take extra time?
 
   VGfloat scaleX = 24.0f / 16.0f;
   VGfloat scaleY = 36.0f / 24.0f;
