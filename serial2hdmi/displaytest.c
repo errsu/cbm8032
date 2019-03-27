@@ -15,6 +15,8 @@
 // PETSCII image contains glyphs in ROM index order
 extern unsigned char petSciiImageData[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
 
+uint32_t rgb_data[PET_IMAGE_WIDTH*PET_IMAGE_HEIGHT];
+
 VGImage petSciiImage;
 
 void makePetSciiImage() {
@@ -24,6 +26,15 @@ void makePetSciiImage() {
   petSciiImage = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_IMAGE_QUALITY_BETTER);
   vgCopyImage(petSciiImage, 0, 0, imgTemp, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_FALSE);
   vgDestroyImage(imgTemp);
+
+  // set green color
+  vgGetImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint32_t), VG_sXBGR_8888, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  for (unsigned i = 0; i < PET_IMAGE_WIDTH * PET_IMAGE_HEIGHT; i++) {
+    if (rgb_data[i] != 0xFF000000) {
+      rgb_data[i] = 0xFF40E030; // XBGR
+    }
+  }
+  vgImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint32_t), VG_sXBGR_8888, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
 }
 
 void destroyPetSciiImage() {
@@ -122,13 +133,14 @@ void imageTest(int screenW, int screenH, unsigned frame) {
 
   Start(screenW, screenH);
   Background(0, 0, 0);
-  VGPaint paint = vgCreatePaint();
-  VGfloat paintColor[4] = { 0.2f, 0.9f, 0.3f, 1.0f };
-  vgSetParameterfv(paint, VG_PAINT_COLOR, 4, paintColor);
-  vgSetPaint(paint, VG_FILL_PATH);
+  // VGPaint paint = vgCreatePaint();
+  // VGfloat paintColor[4] = { 0.2f, 0.9f, 0.3f, 1.0f };
+  // vgSetParameterfv(paint, VG_PAINT_COLOR, 4, paintColor);
+  // vgSetPaint(paint, VG_FILL_PATH);
 
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
-  vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY); // costs 10%
+  // vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY); // costs 10%
+  vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_NORMAL);
   vgSeti(VG_IMAGE_QUALITY, VG_IMAGE_QUALITY_BETTER); // antialiasing doesn't seem to take extra time
 
   // if 1920 x 1080
