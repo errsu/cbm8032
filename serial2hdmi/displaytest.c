@@ -152,6 +152,7 @@ void imageTest(int screenW, int screenH, unsigned frame) {
       vgTranslate(dx, dy);
       vgScale(scaleX, scaleY);
       vgDrawImage(glyphs[cbmCode]);
+      // vgSetPixels(dx, dy, glyphs[cbmCode], 0, 0, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
     }
   }
 
