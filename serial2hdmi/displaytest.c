@@ -133,26 +133,13 @@ void imageTest(int screenW, int screenH, unsigned frame) {
 
   Start(screenW, screenH);
   Background(0, 0, 0);
-  // VGPaint paint = vgCreatePaint();
-  // VGfloat paintColor[4] = { 0.2f, 0.9f, 0.3f, 1.0f };
-  // vgSetParameterfv(paint, VG_PAINT_COLOR, 4, paintColor);
-  // vgSetPaint(paint, VG_FILL_PATH);
 
   vgSeti(VG_MATRIX_MODE, VG_MATRIX_IMAGE_USER_TO_SURFACE);
-  // vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_MULTIPLY); // costs 10%
   vgSeti(VG_IMAGE_MODE, VG_DRAW_IMAGE_NORMAL);
   vgSeti(VG_IMAGE_QUALITY, VG_IMAGE_QUALITY_BETTER); // antialiasing doesn't seem to take extra time
 
-  // if 1920 x 1080
   VGfloat scaleX = 24.0f / 16.0f;
   VGfloat scaleY = 36.0f / 24.0f;
-  // else if 1680 x 1050
-  // VGfloat scaleX = 20.0f / 16.0f;
-  // VGfloat scaleY = 30.0f / 24.0f;
-  // else unscaled
-  // VGfloat scaleX = 16.0f / 16.0f;
-  // VGfloat scaleY = 24.0f / 24.0f;
-  // endif
 
   for (int row = 0; row < 25; row++) {
     for (int col = 0; col < 80; col++) {
@@ -164,23 +151,10 @@ void imageTest(int screenW, int screenH, unsigned frame) {
       vgTranslate(dx, dy);
       vgScale(scaleX, scaleY);
       vgDrawImage(glyphs[cbmCode]);
-      // vgSetPixels(dx, dy, glyphs[cbmCode], 0, 0, PET_GLYPH_WIDTH, PET_GLYPH_HEIGHT);
     }
   }
 
   End();
-}
-
-// wait for a specific character
-void waituntil(int endchar) {
-    int key;
-
-    for (;;) {
-        key = getchar();
-        if (key == endchar || key == '\n') {
-            break;
-        }
-    }
 }
 
 // main initializes the system and shows the picture.
@@ -195,7 +169,6 @@ int main(int argc, char **argv) {
     imageTest(w, h, i);
   }
   finishImageTest();
-  // waituntil(0x1b);
   RestoreTerm();
   FinishOpenVG();
   return 0;
