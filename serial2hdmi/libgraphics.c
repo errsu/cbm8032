@@ -54,10 +54,10 @@ void oglinit() {
 	};
 
 	static const EGLint attribute_list[] = {
-		EGL_RED_SIZE, 8,
-		EGL_GREEN_SIZE, 8,
-		EGL_BLUE_SIZE, 8,
-		EGL_ALPHA_SIZE, 8,
+		EGL_RED_SIZE, 5, // 8,
+		EGL_GREEN_SIZE, 6, // 8,
+		EGL_BLUE_SIZE, 5, // 8,
+		EGL_ALPHA_SIZE, 0, // 8,
 		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
 		EGL_NONE
 	};
@@ -97,7 +97,7 @@ void oglinit() {
 	dispman_update = vc_dispmanx_update_start(0);
 
 	dispman_element = vc_dispmanx_element_add(dispman_update, dispman_display, 0 /*layer */ , &dst_rect, 0 /*src */ ,
-						  &src_rect, DISPMANX_PROTECTION_NONE, &alpha, 0 /*clamp */ ,
+						  &src_rect, DISPMANX_PROTECTION_NONE, NULL, /*&alpha,*/ 0 /*clamp */ ,
 						  0 /*transform */ );
 
 	state->element = dispman_element;
@@ -110,7 +110,8 @@ void oglinit() {
 	assert(state->surface != EGL_NO_SURFACE);
 
 	// preserve the buffers on swap
-	result = eglSurfaceAttrib(state->display, state->surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
+	// result = eglSurfaceAttrib(state->display, state->surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
+	result = eglSurfaceAttrib(state->display, state->surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_DESTROYED);
 	assert(EGL_FALSE != result);
 
 	// connect the context to the surface

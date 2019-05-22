@@ -17,30 +17,43 @@
 
 // #define IMAGE_QUALITY VG_IMAGE_QUALITY_BETTER
 #define IMAGE_QUALITY VG_IMAGE_QUALITY_NONANTIALIASED
+// #define PIXEL_FORMAT VG_sXBGR_8888
+#define PIXEL_FORMAT VG_sRGB_565
+
 
 // PETSCII image contains glyphs in ROM index order
 extern unsigned char petSciiImageData[(PET_IMAGE_WIDTH / 8) * PET_IMAGE_HEIGHT];
 
-uint32_t rgb_data[PET_IMAGE_WIDTH*PET_IMAGE_HEIGHT];
+// uint32_t rgb_data[PET_IMAGE_WIDTH*PET_IMAGE_HEIGHT];
+uint16_t rgb_data[PET_IMAGE_WIDTH*PET_IMAGE_HEIGHT];
 
 VGImage petSciiImage;
 
 void makePetSciiImage() {
   unsigned int dstride = PET_IMAGE_WIDTH / 8;
-  VGImage imgTemp = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, IMAGE_QUALITY);
+  VGImage imgTemp = vgCreateImage(PIXEL_FORMAT, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, IMAGE_QUALITY);
   vgImageSubData(imgTemp, petSciiImageData, dstride, VG_BW_1, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
-  petSciiImage = vgCreateImage(VG_sXBGR_8888, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, IMAGE_QUALITY);
+  petSciiImage = vgCreateImage(PIXEL_FORMAT, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, IMAGE_QUALITY);
   vgCopyImage(petSciiImage, 0, 0, imgTemp, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT, VG_FALSE);
   vgDestroyImage(imgTemp);
 
   // set green color
-  vgGetImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint32_t), VG_sXBGR_8888, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  // vgGetImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint32_t), PIXEL_FORMAT, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  // for (unsigned i = 0; i < PET_IMAGE_WIDTH * PET_IMAGE_HEIGHT * 3; i++) {
+  //   if (rgb_data[i*3] != 0x00) {
+  //     rgb_data[i*3] = 0xFF40E030; // XBGR
+  //   }
+  // }
+  // vgImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint32_t), PIXEL_FORMAT, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+
+
+  vgGetImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint16_t), PIXEL_FORMAT, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
   for (unsigned i = 0; i < PET_IMAGE_WIDTH * PET_IMAGE_HEIGHT; i++) {
-    if (rgb_data[i] != 0xFF000000) {
-      rgb_data[i] = 0xFF40E030; // XBGR
+    if (rgb_data[i] != 0x0000) {
+      rgb_data[i] = 0x4706;
     }
   }
-  vgImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint32_t), VG_sXBGR_8888, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
+  vgImageSubData(petSciiImage, &rgb_data, PET_IMAGE_WIDTH * sizeof(uint16_t), PIXEL_FORMAT, 0, 0, PET_IMAGE_WIDTH, PET_IMAGE_HEIGHT);
 }
 
 void destroyPetSciiImage() {
@@ -189,8 +202,8 @@ void imageTest(int screenW, int screenH, unsigned frame) {
       vgLoadIdentity();
       // VGfloat dx = (VGfloat)screenW / 2.0f + scaleX * (VGfloat)(PET_GLYPH_WIDTH * (col - 40));
       // VGfloat dy = (VGfloat)screenH / 2.0f + scaleY * (VGfloat)(PET_GLYPH_HEIGHT * (12 - row));
-      VGfloat dx = (VGfloat)screenW / 2.0f + (VGfloat)(PET_GLYPH_WIDTH * (col - 40));
-      VGfloat dy = (VGfloat)screenH / 2.0f + (VGfloat)(PET_GLYPH_HEIGHT * (12 - row));
+      VGfloat dx = (VGfloat)SCREENW / 2.0f + (VGfloat)(PET_GLYPH_WIDTH * (col - 40));
+      VGfloat dy = (VGfloat)SCREENH / 2.0f + (VGfloat)(PET_GLYPH_HEIGHT * (12 - row));
       vgTranslate(dx, dy);
       // vgScale(scaleX, scaleY);
       vgDrawImage(glyphs[cbmCode]);
