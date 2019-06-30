@@ -402,6 +402,21 @@ static void collector(streaming chanend c_rx, chanend c_collector)
 
 static unsigned needs_frame_sync = 1;
 
+static unsigned char screen_buffer[2000];
+static unsigned screen_count = 0;
+
+static void print_screen_buffer()
+{
+  for (unsigned i = 0; i < 2000; i++)
+  {
+    putchar(screen_buffer[i]);
+    if (i % 80 == 79)
+    {
+      putchar('\n');
+    }
+  }
+}
+
 static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
 {
   static unsigned char frame = 0;
@@ -411,6 +426,10 @@ static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
   unsigned char expected = (bufnum == 0) ? 0 : (bufnum == 51) ? 0 : (0x41 + frame);
   unsigned char graphic = 0xFF;
 
+  if (bufnum == 1)
+  {
+    screen_count = 0;
+  }
   for (unsigned i = 0; i < 40; i++)
   {
     unsigned char bb = buffer[i];
@@ -418,6 +437,7 @@ static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
     {
       graphic = bb;
     }
+#if 0
     else if (bb != expected)
     {
       if (needs_frame_sync) {
@@ -428,6 +448,13 @@ static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
         errorcount++;
       }
     }
+#else
+    else if (bufnum > 0)
+    {
+        screen_buffer[screen_count] = bb;
+        screen_count = (screen_count + 1) % 2000;
+    }
+#endif
   }
   if (bufnum == 51)
   {
@@ -442,6 +469,8 @@ static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
     }
     framecount++;
     if (framecount == 60) {
+      print_screen_buffer();
+      printf("gr: %d\n", graphic);
       printf(".\n");
       needs_frame_sync = 1; // spending too much time in receiver -> need resync afterwards
       framecount = 0;
@@ -491,9 +520,6 @@ static void handle_received_byte(unsigned char byte, t_receiver_context& context
         context.state = STATE_IN_SYNC;
         context.bufnum = 1;
         context.count = 0;
-      }
-      else
-      {
       }
     }
     else
