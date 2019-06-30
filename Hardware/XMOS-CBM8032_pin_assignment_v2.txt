@@ -1,0 +1,39 @@
+CBM 8032          XMOS startKit
+Hdr Pin Name      Name  Port    Hdr Pin
+J9  2   BA0       D49   32A0    J3  3
+J9  3   BA1       D50   32A1    J3  26
+J9  4   BA2       D51   32A2    J3  24
+J9  5   BA3       D52   32A3    J8  3
+J9  6   BA4       D53   32A4    J8  4
+J9  7   BA5       D54   32A5    J8  5
+J9  8   BA6       D55   32A6    J8  6
+J9  9   BA7       D56   32A7    J3  16
+J9  10  BA8       D57   32A8    J3  15
+J9  11  BA9       D58   32A9    J3  13
+J9  12  BA10      D61   32A10   J3  11
+J4  16  NOT_SEL8  D66   32A15   J8  9 // screen RAM: L
+J9  22  BR/W      D23   1H      J7  2 // write trigger: H/L
+J2  11  GRAPHIC   D24   1I      J7  20  // font selector
+J?? ??  ???????   D22   1G      J7  3 // 50 Hz frame sync
+J4  2   BD0       D14   8B0     J7  5
+J4  3   BD1       D15   8B1     J7  7
+J4  4   BD2       D16   8B2     J7  9
+J4  5   BD3       D17   8B3     J7  13
+J4  6   BD4       D18   8B4     J7  12
+J4  7   BD5       D19   8B5     J7  14
+J4  8   BD6       D20   8B6     J7  6
+J4  9   BD7       D21   8B7     J7  8
+
+RASPI           XMOS startKit
+
+Pin Name              Name    Port  Hdr Pin
+6   GND               for example:  J8  1 // GND
+10  BCM15/UART0 RXD   D13     1F    J7  1 // UART TX
+
++5V to XMOS  taken from CBM8032 Cass 2 Pin 2
+XMOS GND at J6 Pin 5.
+
+XMOS startKit Simulation/Test Link
+
+Name  Port    Hdr Pin
+D12   1E      J7  4 // Simulates RASPI UART RX

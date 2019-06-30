@@ -62,7 +62,7 @@
 // init_uart_baud=2000000
 
 on tile[0]: const clock refClk = XS1_CLKBLK_REF;
-#define TICKS_PER_BIT 50
+#define TICKS_PER_BIT 64
 
 void uart_tx(out port p, chanend c_tx) {
 
@@ -92,12 +92,12 @@ void uart_tx(out port p, chanend c_tx) {
   }
 }
 
-on tile[0]: out port p_uart_tx = XS1_PORT_1F;  // J7 pin 1
-on tile[0]: in  port p_graphic = XS1_PORT_1I;  // J7 pin 20
-on tile[0]: in  port p_trigger = XS1_PORT_1H;  // J7 pin 2
+on tile[0]: out port p_uart_tx = XS1_PORT_1F;  // D13 J7 pin 1
+on tile[0]: in  port p_graphic = XS1_PORT_1I;  // D24 J7 pin 20
+on tile[0]: in  port p_trigger = XS1_PORT_1H;  // D23 J7 pin 2
 on tile[0]: in  port p_address = XS1_PORT_32A; // lower 16 pins only, at J3 and J8
 on tile[0]: in  port p_data    = XS1_PORT_8B;  // J7 5/7/9/13/12/14/6/8
-on tile[0]: in  port p_frame   = XS1_PORT_1G;  // J7 pin 3
+on tile[0]: in  port p_frame   = XS1_PORT_1G;  // D22 J7 pin 3
 
 #define CMD_WRITE   0x01000000
 #define CMD_GRAPHIC 0x02000000
@@ -204,7 +204,8 @@ void observer_mockup(chanend c_observer)
           graphic = graphic? 0 : 1;
 
           address = 0;
-          time += 1800000; // 18 ms
+          time += 1466666; // 14.66 ms (plus 2 ms sending the frame) -> 60 Hz
+          // time += 1800000; // 18 ms (plus 2 ms sending the frame) -> 50 Hz
         }
         break;
 
@@ -344,11 +345,11 @@ void renderer(chanend c_observer, chanend c_tx)
   }
 }
 
-#define TEST_RECEIVER 0
+#define TEST_RECEIVER 1
 #if TEST_RECEIVER
 // Test receiver ------------------------------------------------------------
 
-on tile[0]: in port p_uart_rx = XS1_PORT_1E;  // X0D13 J7 pin 4
+on tile[0]: in port p_uart_rx = XS1_PORT_1E;  // X0D12 J7 pin 4
 
 static void uart_rx(streaming chanend c_rx)
 {
