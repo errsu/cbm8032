@@ -24,16 +24,43 @@ J4  7   BD5       D19   8B5     J7  14
 J4  8   BD6       D20   8B6     J7  6
 J4  9   BD7       D21   8B7     J7  8
 
-RASPI           XMOS startKit
-
-Pin Name              Name    Port  Hdr Pin
-6   GND               for example:  J8  1 // GND
-10  BCM15/UART0 RXD   D13     1F    J7  1 // UART TX
+RASPI                 XMOS startKit
+Pin Name              Name  Port  Hdr Pin  Function
+6   GND               ---   ----  J8  1    GND       (or J6 Pin1)
+10  BCM15/UART0 RXD   D13   1F    J7  1    UART TX
 
 +5V to XMOS  taken from CBM8032 Cass 2 Pin 2
 XMOS GND at J6 Pin 5.
 
-XMOS startKit Simulation/Test Link
+USB-Serial         XMOS startKit
+Pin  Name   Color  Name  Port  Hdr Pin  Function
+1    GND    BLACK  ---   ----  J8  1    GND      (or J6 Pin1)
+5    RX     RED    D13   1F    J7  1    UART TX
+4    TX     WHITE  D25   1J    J7  10   UART RX  (for test purposes only)
 
+XMOS startKit Simulation/Test Link
 Name  Port    Hdr Pin
 D12   1E      J7  4 // Simulates RASPI UART RX
+
+USB-Serial FT232RL breakout board pin header
+(looking from component side)
+
+------ Mini -----
+|    USB Port   |
+|               |
+|  RX LED       |
+|  TX LED       |
+|               |
+|     ------    |
+|     | IC |    |
+|     |    |    |
+|     | IC |    |
+|     ------    |
+|               |
+|  6 5 4 3 2 1  |
+|  O O O O O O  |
+---|-|-|-|-|-|---
+   | | | | | |
+   D R T V C G
+   T X X C T N
+   R     C S D

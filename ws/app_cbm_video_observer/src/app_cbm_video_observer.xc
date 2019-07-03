@@ -61,8 +61,12 @@
 // init_uart_clock=32000000 (16 * baud rate)
 // init_uart_baud=2000000
 
+// Fastest solution for FT232RL USB-serial adapter
+// baud rate = 3000000 bit/s
+// TICKS_PER_BIT = 33
+
 on tile[0]: const clock refClk = XS1_CLKBLK_REF;
-#define TICKS_PER_BIT 64
+#define TICKS_PER_BIT 33
 
 void uart_tx(out port p, chanend c_tx) {
 
