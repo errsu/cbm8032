@@ -29,11 +29,11 @@ static int open_uart0()
   //       terminal for the process.
 
   // int uart0_filestream = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY); // non blocking read/write mode
-  int uart0_filestream = open("/dev/serial0", O_RDONLY | O_NOCTTY | O_NDELAY); // non blocking read mode
+  int uart0_filestream = open("/dev/ttyUSB0", O_RDONLY | O_NOCTTY | O_NDELAY); // non blocking read mode
 
   if (uart0_filestream == -1)
   {
-    perror("unable to open /dev/serial0");
+    perror("unable to open /dev/ttyUSB0");
     return -1;
   }
 
@@ -54,7 +54,7 @@ static int open_uart0()
 
   struct termios options;
   tcgetattr(uart0_filestream, &options);
-  options.c_cflag = B2000000 | CS8 | CLOCAL | CREAD;   // Set baud rate
+  options.c_cflag = B3000000 | CS8 | CLOCAL | CREAD;   // Set baud rate
   options.c_iflag = IGNPAR;
   options.c_oflag = 0;
   options.c_lflag = 0;
@@ -95,36 +95,69 @@ static int read_bytes(int uart0_filestream, unsigned char* pBuffer, unsigned int
 //----------------------------------------------------------------------------------------
 
 static unsigned needs_frame_sync = 1;
+static unsigned sync_loss_count = 0;
 
-static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
+static unsigned char screen_buffer[2000];
+static unsigned screen_count = 0;
+
+static void print_screen_buffer()
+{
+  for (unsigned i = 0; i < 2000; i++)
+  {
+    putchar(screen_buffer[i]);
+    if (i % 80 == 79)
+    {
+      putchar('\n');
+    }
+  }
+}
+
+static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40], int printing)
 {
   static unsigned char frame = 0;
   static unsigned framecount = 0;
   static unsigned errorcount = 0;
 
-  unsigned char expected = (bufnum == 0) ? 0 : (bufnum == 51) ? 0 : (0x41 + frame);
-  unsigned char graphic = 0xFF;
-
-  for (unsigned i = 0; i < 40; i++)
+  if (bufnum == 1)
   {
-    unsigned char bb = buffer[i];
-    if (bufnum == 51 && i == 0)
+    screen_count = 0;
+  }
+  if (bufnum < 51)
+  {
+    for (unsigned i = 0; i < 40; i++)
     {
-      graphic = bb;
-    }
-    else if (bb != expected)
-    {
-      if (needs_frame_sync) {
-        frame = bb - 0x41;
-        expected = bb;
-        needs_frame_sync = 0;
-      } else {
-        errorcount++;
+      unsigned char bb = buffer[i];
+      if (printing)
+      {
+        if (bufnum > 0)
+        {
+          screen_buffer[screen_count] = bb;
+          screen_count += 1;
+        }
+      }
+      else
+      {
+        unsigned char expected = (bufnum == 0) ? 0 : (bufnum == 51) ? 0 : (0x41 + frame);
+        if (bb != expected)
+        {
+          if (needs_frame_sync)
+          {
+            frame = bb - 0x41;
+            expected = bb;
+            needs_frame_sync = 0;
+          }
+          else
+          {
+            errorcount++;
+          }
+          break;
+        }
       }
     }
   }
-  if (bufnum == 51)
+  else
   {
+    unsigned char graphic = buffer[0];
     frame += 1;
     if (frame == 26) {
       frame = 0;
@@ -135,19 +168,22 @@ static void handle_received_buffer(unsigned bufnum, unsigned char buffer[40])
       needs_frame_sync = 1;
     }
     framecount++;
-    if (framecount == 50) {
-      if (graphic) {
-        printf("+\n");
-      } else {
-        printf(".\n");
+    if (framecount == 60) {
+      if (printing)
+      {
+        print_screen_buffer();
       }
-      needs_frame_sync = 1; // spending too much time in receiver -> need resync afterwards
+      if (graphic) {
+        printf("+ %d\n", sync_loss_count);
+      } else {
+        printf(". %d\n", sync_loss_count);
+      }
+      sync_loss_count = 0;
       framecount = 0;
     }
   }
 }
 
-#define STATE_OUT_OF_SYNC    0
 #define STATE_COUNTING_ZEROS 1
 #define STATE_IN_SYNC        2
 
@@ -160,26 +196,21 @@ typedef struct {
 
 static void init_receiver_context(t_receiver_context* context)
 {
-  context->state = STATE_OUT_OF_SYNC;
+  context->state = STATE_COUNTING_ZEROS;
+  context->count = 0;
 }
 
 static void handle_sync_loss(t_receiver_context* context, unsigned char byte)
 {
   printf("out of sync at bufnum %d count %d - received %02x\n", context->bufnum, context->count, byte);
+  sync_loss_count += 1;
   needs_frame_sync = 1;
 }
 
-static void handle_received_byte(unsigned char byte, t_receiver_context* context)
+static void handle_received_byte(unsigned char byte, t_receiver_context* context, int printing)
 {
   switch(context->state)
   {
-  case STATE_OUT_OF_SYNC:
-    if (byte != 0)
-    {
-      context->state = STATE_COUNTING_ZEROS;
-      context->count = 0;
-    }
-    break;
   case STATE_COUNTING_ZEROS:
     if (byte == 0)
     {
@@ -210,7 +241,7 @@ static void handle_received_byte(unsigned char byte, t_receiver_context* context
     {
       if (byte == (unsigned char)context->bufnum)
       {
-        handle_received_buffer(context->bufnum, context->buffer);
+        handle_received_buffer(context->bufnum, context->buffer, printing);
         context->bufnum += 1;
         context->count = 0;
         if (context->bufnum == 52)
@@ -221,7 +252,8 @@ static void handle_received_byte(unsigned char byte, t_receiver_context* context
       else
       {
         handle_sync_loss(context, byte);
-        context->state = STATE_OUT_OF_SYNC;
+        context->state = STATE_COUNTING_ZEROS;
+        context->count = 0;
       }
     }
     break;
@@ -230,6 +262,9 @@ static void handle_received_byte(unsigned char byte, t_receiver_context* context
 
 
 int main(int argc, char **argv) {
+
+  int printing = (argc == 2 && strcmp(argv[1], "-p") == 0);
+
   int uart0_filestream = open_uart0();
 
   if (uart0_filestream > 0) {
@@ -243,7 +278,7 @@ int main(int argc, char **argv) {
     unsigned char buffer[256];
     int count = read_bytes(uart0_filestream, buffer, 256);
     for (unsigned i = 0; i < count; i++) {
-      handle_received_byte(buffer[i], &context);
+      handle_received_byte(buffer[i], &context, printing);
     }
   }
 

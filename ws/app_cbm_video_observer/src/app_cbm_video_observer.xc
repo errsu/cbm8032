@@ -349,7 +349,7 @@ void renderer(chanend c_observer, chanend c_tx)
   }
 }
 
-#define TEST_RECEIVER 1
+#define TEST_RECEIVER 0
 #if TEST_RECEIVER
 // Test receiver ------------------------------------------------------------
 
@@ -589,7 +589,7 @@ int main()
 
   par
   {
-    on tile[0]: observer(c_observer);
+    on tile[0]: observer_mockup(c_observer);
     on tile[0]: renderer(c_observer, c_tx);
     on tile[0]: uart_tx(p_uart_tx, c_tx);
 
