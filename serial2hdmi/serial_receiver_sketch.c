@@ -218,7 +218,9 @@ static void receive_screen(int stream, t_receiver_context* context, unsigned cha
 
 static void print_screen_buffer(unsigned char* screen_buffer, unsigned char graphic)
 {
-  for (unsigned i = 0; i < 2000; i++)
+  unsigned i;
+
+  for (i = 0; i < 2000; i++)
   {
     putchar(screen_buffer[i]);
     if (i % 80 == 79)
