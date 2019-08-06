@@ -143,7 +143,10 @@ void observer(chanend c_observer)
 
           if ((address & 0x8000) == 0) // 0x8000 address indicator is low-active
           {
-            nbsp_send(observer_state, CMD_WRITE | ((address & 0x07FF) << 8) | data);
+            unsigned video_buffer_address = address & 0x07FF;
+            if (video_buffer_address < 2000) {
+              nbsp_send(observer_state, CMD_WRITE | (video_buffer_address << 8) | data);
+            }
           }
         }
         break;
