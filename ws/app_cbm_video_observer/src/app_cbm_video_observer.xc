@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <safestring.h>
-#include "shared_memory.h"
 #include "nbsp.h"
 
 // 1 tick == 10 ns
