@@ -65,7 +65,7 @@
 // TICKS_PER_BIT = 33
 
 on tile[0]: const clock refClk = XS1_CLKBLK_REF;
-#define TICKS_PER_BIT 33
+#define TICKS_PER_BIT 64
 
 void uart_tx(out port p, chanend c_tx) {
 
@@ -591,7 +591,7 @@ int main()
 
   par
   {
-    on tile[0]: observer_mockup(c_observer);
+    on tile[0]: observer(c_observer);
     on tile[0]: renderer(c_observer, c_tx);
     on tile[0]: uart_tx(p_uart_tx, c_tx);
 
