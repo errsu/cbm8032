@@ -46,7 +46,7 @@
 *.BOM                 binary
 *.buildinfo           text eol=lf
 *.bz2                 binary
-*.c                   text
+*.c                   text diff=cpp eol=lf
 *.cab                 binary
 *.cat                 binary
 *.cmake               text
