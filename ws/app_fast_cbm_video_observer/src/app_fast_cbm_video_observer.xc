@@ -128,9 +128,46 @@ void memory_observer()
   }
 }
 
+static unsigned frame_rate = 50; // only 50 or 60 are allowed
+
+static void check_frame_rate(unsigned time, unsigned last)
+{
+  if (last == 0)
+  {
+    // no change if first frame or (by seldom chance) wrapping just to zero
+    return;
+  }
+
+  unsigned delta = (time - last) / 100; // in microseconds
+
+  // fps    frame    missed frame
+  // 50     20ms     40ms
+  // 60     16.66ms  33.33 ms
+  // using a tolerance of 5%, make sure areas don't overlap
+
+  if (frame_rate == 50) // we test only for changes
+  {
+    if ((15800 < delta && delta < 17500) || (31600 < delta && delta < 35000))
+    {
+      printf("-> 60Hz\n");
+      frame_rate = 60;
+    }
+  }
+  else
+  {
+    if ((19000 < delta && delta < 21000) || (38000 < delta && delta < 42000))
+    {
+      printf("-> 50Hz\n");
+      frame_rate = 50;
+    }
+  }
+}
+
 void frame_observer(chanend c_observer)
 {
   unsigned frame = 0;
+  timer t;
+  unsigned last_frame_time = 0;
 
   t_nbsp_state observer_state;
   NBSP_INIT_WITH_BUFFER(c_observer, observer_state, 8); // we need only one frame signal, don't we?
@@ -143,6 +180,11 @@ void frame_observer(chanend c_observer)
       case p_frame when pinsneq(frame) :> frame:
         if (frame == 0)
         {
+          unsigned time;
+          t :> time;
+          check_frame_rate(time, last_frame_time);
+          last_frame_time = time;
+
           video_memory_copy_to(0); // use only one copy for now
           nbsp_send(observer_state, 0);
         }
