@@ -149,7 +149,6 @@ static void check_frame_rate(unsigned time, unsigned last)
   {
     if ((15800 < delta && delta < 17500) || (31600 < delta && delta < 35000))
     {
-      printf("-> 60Hz\n");
       frame_rate = 60;
     }
   }
@@ -157,7 +156,6 @@ static void check_frame_rate(unsigned time, unsigned last)
   {
     if ((19000 < delta && delta < 21000) || (38000 < delta && delta < 42000))
     {
-      printf("-> 50Hz\n");
       frame_rate = 50;
     }
   }
@@ -168,6 +166,7 @@ void frame_observer(chanend c_observer)
   unsigned frame = 0;
   timer t;
   unsigned last_frame_time = 0;
+  unsigned buf_num = 0;
 
   t_nbsp_state observer_state;
   NBSP_INIT_WITH_BUFFER(c_observer, observer_state, 8); // we need only one frame signal, don't we?
@@ -185,12 +184,21 @@ void frame_observer(chanend c_observer)
           check_frame_rate(time, last_frame_time);
           last_frame_time = time;
 
-          video_memory_copy_to(0); // use only one copy for now
-          nbsp_send(observer_state, 0);
+          video_memory_copy_to(buf_num);
+          nbsp_send(observer_state, buf_num);
+
+          buf_num += 1;
+          if (buf_num == VIDEO_BUF_COPIES)
+          {
+            buf_num = 0;
+          }
         }
         break;
 
-      case NBSP_RECEIVE_MSG(observer_state): // Q: is this faster than the frame signal duration?
+      // Q: is this faster than the frame signal duration?
+      //    if not, we would miss a frame (visually hard to see)
+      // Q: is the nbsp buffer ever used?
+      case NBSP_RECEIVE_MSG(observer_state):
         nbsp_handle_msg(observer_state); // pushing the buffer through
         break;
     }
@@ -206,7 +214,7 @@ void renderer(chanend c_observer, chanend c_tx)
   NBSP_INIT_WITH_BUFFER(c_tx, tx_state, 128); // Q: hold whole frame?
 
   unsigned pending_tx = 0;
-  unsigned bufNum = 0;
+  unsigned buf_num = 0;
   unsigned line;
   int ch_index;
 
@@ -219,7 +227,7 @@ void renderer(chanend c_observer, chanend c_tx)
       if (nbsp_handle_msg(observer_state))
       {
         // incoming data from observer
-        bufNum = nbsp_received_data(observer_state);
+        buf_num = nbsp_received_data(observer_state);
         if (pending_tx)
         {
           // could not send out frame until next arrived
@@ -230,7 +238,7 @@ void renderer(chanend c_observer, chanend c_tx)
         ch_index = 0; // 0 to 40
         while (line < 52)
         {
-          unsigned byte_to_send = (ch_index == 40) ? line : video_memory_read(bufNum, line * 40 + ch_index);
+          unsigned byte_to_send = (ch_index == 40) ? line : video_memory_read_from_copy(buf_num, line * 40 + ch_index);
           if (nbsp_send(tx_state, byte_to_send))
           {
             ch_index += 1;
@@ -254,7 +262,7 @@ void renderer(chanend c_observer, chanend c_tx)
       {
         // ack received from uart_tx - tx buffer might have more room
         if (pending_tx) {
-          unsigned byte_to_send = (ch_index == 40) ? line : video_memory_read(bufNum, line * 40 + ch_index);
+          unsigned byte_to_send = (ch_index == 40) ? line : video_memory_read_from_copy(buf_num, line * 40 + ch_index);
           nbsp_send(tx_state, byte_to_send); // should succeed
           ch_index += 1;
           if (ch_index == 41)
