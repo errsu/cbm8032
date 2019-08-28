@@ -23,10 +23,17 @@ void video_memory_write_graphic(unsigned graphic)
   video_buffer[40*50] = (unsigned char)graphic;
 }
 
-void video_memory_copy_to(unsigned buf_num)
+void video_memory_copy_line_to(unsigned buf_num, unsigned line)
+{
+  // line in range 0 ... 24
+  // first 40 bytes are left alone
+  safememcpy(copied_buffer[buf_num] + 40 + (line * 80), video_buffer + line * 80, 80);
+}
+
+void video_memory_copy_flags_to(unsigned buf_num)
 {
   // first 40 bytes are left alone
-  safememcpy(copied_buffer[buf_num]+40, video_buffer, sizeof(video_buffer));
+  safememcpy(copied_buffer[buf_num] + 40*51, video_buffer + 40*50, 40);
 }
 
 unsigned video_memory_read_from_copy(unsigned buf_num, unsigned index)

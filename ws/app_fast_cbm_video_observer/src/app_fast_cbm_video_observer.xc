@@ -184,7 +184,11 @@ void frame_observer(chanend c_observer)
           check_frame_rate(time, last_frame_time);
           last_frame_time = time;
 
-          video_memory_copy_to(buf_num);
+          for (unsigned line = 0; line < 25; line++)
+          {
+            video_memory_copy_line_to(buf_num, line);
+          }
+          video_memory_copy_flags_to(buf_num); // TODO: check if we want to copy flags before
           nbsp_send(observer_state, buf_num);
 
           buf_num += 1;
