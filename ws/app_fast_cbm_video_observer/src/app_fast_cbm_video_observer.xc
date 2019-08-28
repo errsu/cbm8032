@@ -81,6 +81,7 @@ on tile[0]: in  port p_frame   = XS1_PORT_1G;  // D22 J7 pin 3
 void memory_observer()
 {
   unsigned trigger = 0;
+  unsigned graphic = 0;
   timer t;
 
   video_memory_init();
@@ -118,6 +119,11 @@ void memory_observer()
           }
         }
         break;
+
+      case p_graphic when pinsneq(graphic) :> graphic:
+        video_memory_write(40*50, graphic);
+        break;
+
     }
   }
 }
@@ -125,7 +131,6 @@ void memory_observer()
 void frame_observer(chanend c_observer)
 {
   unsigned frame = 0;
-  unsigned graphic = 0;
 
   t_nbsp_state observer_state;
   NBSP_INIT_WITH_BUFFER(c_observer, observer_state, 8); // we need only one frame signal, don't we?
@@ -141,10 +146,6 @@ void frame_observer(chanend c_observer)
           video_memory_copy_to(0); // use only one copy for now
           nbsp_send(observer_state, 0);
         }
-        break;
-
-      case p_graphic when pinsneq(graphic) :> graphic:
-        video_memory_write(40*50, graphic);
         break;
 
       case NBSP_RECEIVE_MSG(observer_state): // Q: is this faster than the frame signal duration?
