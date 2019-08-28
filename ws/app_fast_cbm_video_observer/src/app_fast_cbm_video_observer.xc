@@ -114,14 +114,14 @@ void memory_observer()
           {
             unsigned video_buffer_address = address & 0x07FF;
             if (video_buffer_address < 2000) {
-              video_memory_write(video_buffer_address, data & 0xFF);
+              video_memory_write_data(video_buffer_address, data & 0xFF);
             }
           }
         }
         break;
 
       case p_graphic when pinsneq(graphic) :> graphic:
-        video_memory_write(40*50, graphic);
+        video_memory_write_graphic(graphic);
         break;
 
     }

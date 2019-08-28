@@ -13,9 +13,14 @@ void video_memory_init()
   }
 }
 
-void video_memory_write(unsigned index, unsigned data)
+void video_memory_write_data(unsigned index, unsigned data)
 {
   video_buffer[index] = (unsigned char)data;
+}
+
+void video_memory_write_graphic(unsigned graphic)
+{
+  video_buffer[40*50] = (unsigned char)graphic;
 }
 
 void video_memory_copy_to(unsigned buf_num)
