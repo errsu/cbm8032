@@ -128,7 +128,37 @@ void memory_observer()
   }
 }
 
-static unsigned frame_rate = 50; // only 50 or 60 are allowed
+
+// Chose time delays so that line copying is finished just before
+// the CRT controller latches the first byte of that line from video
+// memory to show the first row of pixels (which is followed by 7
+// more reads of the same line but irrelevant for us).
+// A less hard but sufficient precondition is to read ahead of the
+// first pixel row byte latching. Since XMOS is copying memory much
+// faster than the CRT controller scanning it (better than 30 MB/sec
+// vs. 1MB/sec), it is sufficient to read the first byte earlier than
+// the CRT controller.
+// The timer oberhead and calls to video_memory_copy_line_to and then
+// memcpy take approx. 250..500ns until the first byte is actually copied.
+
+// All time delays given in tens of nanoseconds, accumulated error is
+// then < 250ns, which is OK for a 1000ns memory read cycle.
+
+// TODO: check if we have enough time from the frame signal
+//       to the first latch to copy the first line, if not
+//       we must copy it at the end of the previous frame,
+//       possibly with a third delay
+
+// TODO: check if we want to start sending a frame to uart
+//       as soon as first line is copied, to reduce overall latency
+
+// index is frame rate
+#define FPS50 0
+#define FPS60 1
+static unsigned delay_first[2] = {     0,     0};
+static unsigned delay_next[2]  = { 80000, 66666};
+
+static unsigned frame_rate = FPS50;
 
 static void check_frame_rate(unsigned time, unsigned last)
 {
@@ -145,18 +175,18 @@ static void check_frame_rate(unsigned time, unsigned last)
   // 60     16.66ms  33.33 ms
   // using a tolerance of 5%, make sure areas don't overlap
 
-  if (frame_rate == 50) // we test only for changes
+  if (frame_rate == FPS50) // we test only for changes
   {
     if ((15800 < delta && delta < 17500) || (31600 < delta && delta < 35000))
     {
-      frame_rate = 60;
+      frame_rate = FPS60;
     }
   }
   else
   {
     if ((19000 < delta && delta < 21000) || (38000 < delta && delta < 42000))
     {
-      frame_rate = 50;
+      frame_rate = FPS50;
     }
   }
 }
@@ -186,9 +216,14 @@ void frame_observer(chanend c_observer)
 
           for (unsigned line = 0; line < 25; line++)
           {
+            time += (line == 0) ? delay_first[frame_rate] : delay_next[frame_rate];
+            t when timerafter(time) :> void;
+
             video_memory_copy_line_to(buf_num, line);
           }
-          video_memory_copy_flags_to(buf_num); // TODO: check if we want to copy flags before
+
+          // TODO: check if we want to copy flags before
+          video_memory_copy_flags_to(buf_num);
           nbsp_send(observer_state, buf_num);
 
           buf_num += 1;
@@ -201,7 +236,10 @@ void frame_observer(chanend c_observer)
 
       // Q: is this faster than the frame signal duration?
       //    if not, we would miss a frame (visually hard to see)
+      // A: most likely yes
       // Q: is the nbsp buffer ever used?
+      // A: since sending a buffer over UART is faster than copying
+      //    the next buffer line by line, the answer is most likely no.
       case NBSP_RECEIVE_MSG(observer_state):
         nbsp_handle_msg(observer_state); // pushing the buffer through
         break;
