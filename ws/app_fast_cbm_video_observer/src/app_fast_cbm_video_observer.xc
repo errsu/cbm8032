@@ -155,8 +155,8 @@ void memory_observer()
 // index is frame rate
 #define FPS50 0
 #define FPS60 1
-static unsigned delay_first[2] = {     0,     0};
-static unsigned delay_next[2]  = { 80000, 66666};
+static unsigned delay_first[2] = {520000,     0};
+static unsigned delay_next[2]  = { 40000, 66666};
 
 static unsigned frame_rate = FPS50;
 
